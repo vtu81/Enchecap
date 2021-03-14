@@ -27,9 +27,9 @@ make # SGX hardware mode
 make SGX_MODE=SIM  # SGX simulation mode
 ```
 
-For more details please check README_SGX.txt.
+(check README_SGX.txt for more details)
 
-> Your linux OS version might be limited by SGX SDK, check https://01.org/intel-software-guard-extensions for more detail. We're using Ubuntu 18.04 x86_64, and cannot guarantee it work successfully on other platforms. We are also compiling with gcc version 7.5.0 and nvcc v11.1, which do not pose such strict limitations compared to Intel SGX.
+> Your linux OS version might be limited by SGX SDK, check https://01.org/intel-software-guard-extensions for more details. We're using Ubuntu 18.04 x86_64, and cannot guarantee it work successfully on other platforms. We are also compiling with gcc version 7.5.0 and nvcc v11.1, which do not pose such strict limitations compared to Intel SGX.
 
 ---
 
