@@ -34,6 +34,8 @@
 #include <stdarg.h>
 #include <stdio.h> /* vsnprintf */
 #include <string.h>
+// #include <time.h>
+// #include <omp.h>
 
 /* 
  * printf: 
@@ -53,4 +55,76 @@ int printf(const char* fmt, ...)
 void ecall_print_helloworld()
 {
     printf("Hello world!\n");
+}
+
+void ecall_encrypt_cpu(void* data, int len)
+{
+	printf("@ENCLAVE: \"CPU encrypting in enclave...");
+	printf("** %u ** -> ", ((unsigned int*)data)[1]);
+
+    unsigned long int p, q, n, e, d;
+    p = 74531;
+    q = 37019;
+    e = 0x10001;
+	d = 985968293;
+	n = p * q;
+    
+    // struct timespec __begin,__end;
+    // clock_gettime(CLOCK_MONOTONIC, &__begin);
+	unsigned int *mm = (unsigned int *)data,*en = mm;
+	#ifdef _DEBUG
+	printf("n%u\n\n\n\n",n);
+	#endif
+	// #pragma omp parallel for
+	for(int i = 0; i < len; i++){
+		unsigned long key = e, k = 1, exp = mm[i] % n;
+		while(key){
+			if(key % 2){
+				k *= exp;
+				k %= n;
+			}
+			key /= 2;
+			exp *= exp;
+			exp %= n;
+		}
+		en[i] = (unsigned int)k;		
+	}
+	// clock_gettime(CLOCK_MONOTONIC,&__end);
+	// printf("CPU Encryption in enclave:%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
+	printf("** %u **", ((unsigned int*)data)[1]);
+	printf(" successfully!\"\n");
+}
+
+void ecall_decrypt_cpu(void* data, int len)
+{
+	printf("@ENCLAVE: \"CPU decrypting in enclave...");
+	printf("** %u ** -> ", ((unsigned int*)data)[1]);
+    unsigned long int p, q, n, e, d;
+    p = 74531;
+    q = 37019;
+    e = 0x10001;
+	d = 985968293;
+	n = p * q;
+
+    // struct timespec __begin,__end;
+    // clock_gettime(CLOCK_MONOTONIC, &__begin);
+	unsigned int *mm=(unsigned int *)data,*en=mm;
+	// #pragma omp parallel for
+	for(int i=0;i<len;i++) {
+		unsigned long ct = en[i]%n,k = 1,key=d;
+		while(key){
+			if(key%2==1){
+				k*=ct;
+				k%=n;
+			}
+			key/=2;
+			ct*=ct;
+			ct%=n;
+		}
+		mm[i] = (unsigned int)k;
+	}
+	// clock_gettime(CLOCK_MONOTONIC,&__end);
+	// printf("CPU Decryption in enclave:%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
+	printf("** %u **", ((unsigned int*)data)[1]);
+	printf(" successfully!\"\n");
 }

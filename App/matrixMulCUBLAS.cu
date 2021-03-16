@@ -51,6 +51,7 @@
 
 #include "RSA.cu"
 #include "matrixMulCUBLAS.h"
+#include "EnclaveWrapper.h"
 
 typedef struct _matrixSize      // Optional Command-line multiplier for matrix sizes
 {
@@ -58,6 +59,14 @@ typedef struct _matrixSize      // Optional Command-line multiplier for matrix s
 } sMatrixSize;
 
 int nIter=1,encrypt=1,verify=1;
+
+void matrixMulCPU(float *C, const float *A, const float *B, unsigned int hA, unsigned int wA, unsigned int wB);
+void randomInit(float *data, int size);
+void printDiff(float *data1, float *data2, int width, int height, int iListLength, float fListTol);
+void initializeCUDA(int argc, char **argv, int &devID, int &iSizeMultiple, sMatrixSize &matrix_size);
+int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size, unsigned long eid);
+cudaError_t secureCudaMemcpy(void *dst, void *src, size_t count, enum cudaMemcpyKind kind, int encrypt_s, int decrypt_d, unsigned long eid);
+
 ////////////////////////////////////////////////////////////////////////////////
 //! Compute reference data set matrix multiply on CPU
 //! C = A * B
@@ -192,7 +201,7 @@ void initializeCUDA(int argc, char **argv, int &devID, int &iSizeMultiple, sMatr
 ////////////////////////////////////////////////////////////////////////////////
 //! Run a simple test matrix multiply using CUBLAS
 ////////////////////////////////////////////////////////////////////////////////
-int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size)
+int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size, unsigned long eid)
 {
 	// p = 157;
 	// q = 373;
@@ -200,10 +209,10 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size)
     // q= 130643;
     // e=0x10001;
     // d=5621128193;
-    p= 74531;
-    q= 37019;
-    e=0x10001;
-	d=985968293;
+    p = 74531;
+    q = 37019;
+    e = 0x10001;
+	d = 985968293;
 	n = p * q;
     cudaDeviceProp deviceProp;
 
@@ -251,12 +260,24 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size)
     checkCudaErrors(cudaEventCreate(&stop));
     // Record the start event
     checkCudaErrors(cudaEventRecord(start, NULL));
-    if(encrypt){
-        encrypt_cpu(h_A,size_A);
-        encrypt_cpu(h_B,size_B);
-    }
-    checkCudaErrors(cudaMemcpy(d_A, h_A, mem_size_A, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_B, h_B, mem_size_B, cudaMemcpyHostToDevice));
+    
+
+
+    // if(encrypt){
+    //     encrypt_cpu(h_A,mem_size_A/sizeof(int));
+    //     encrypt_cpu(h_B,mem_size_B/sizeof(int));
+    // }
+    // checkCudaErrors(cudaMemcpy(d_A, h_A, mem_size_A, cudaMemcpyHostToDevice));
+    // checkCudaErrors(cudaMemcpy(d_B, h_B, mem_size_B, cudaMemcpyHostToDevice));
+    // if(encrypt){
+    //     decrypt_gpu(d_A,mem_size_A/sizeof(int));
+    //     decrypt_gpu(d_B,mem_size_B/sizeof(int));
+    // }
+
+    checkCudaErrors(secureCudaMemcpy(d_A, h_A, mem_size_A, cudaMemcpyHostToDevice, encrypt, encrypt, eid));
+    checkCudaErrors(secureCudaMemcpy(d_B, h_B, mem_size_B, cudaMemcpyHostToDevice, encrypt, encrypt, eid));
+
+
 
     // setup execution parameters
     dim3 threads(block_size, block_size);
@@ -284,10 +305,6 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size)
         checkCudaErrors(cudaEventCreate(&compute_start));
         checkCudaErrors(cudaEventCreate(&compute_end));
 
-        if(encrypt){
-            decrypt_gpu(d_A,mem_size_A/sizeof(int));
-            decrypt_gpu(d_B,mem_size_B/sizeof(int));
-        }
         cudaEventRecord(compute_start,NULL);
         for (int j = 0; j < nIter; j++)
         {
@@ -297,10 +314,14 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size)
         }
         cudaEventRecord(compute_end,NULL);
         checkCudaErrors(cudaEventSynchronize(compute_end));
-        if(encrypt)encrypt_gpu(d_C,mem_size_C/sizeof(int));
-        // decrypt_gpu(d_C,mem_size_C/sizeof(int));
-	    checkCudaErrors(cudaMemcpy(h_CUBLAS, d_C, mem_size_C, cudaMemcpyDeviceToHost));
-        if(encrypt)decrypt_cpu(h_CUBLAS,mem_size_C/sizeof(int));
+        
+        // if(encrypt)encrypt_gpu(d_C,mem_size_C/sizeof(int));
+        // // decrypt_gpu(d_C,mem_size_C/sizeof(int));
+	    // checkCudaErrors(cudaMemcpy(h_CUBLAS, d_C, mem_size_C, cudaMemcpyDeviceToHost));
+        // if(encrypt)decrypt_cpu(h_CUBLAS,mem_size_C/sizeof(int));
+
+        checkCudaErrors(secureCudaMemcpy(h_CUBLAS, d_C, mem_size_C, cudaMemcpyDeviceToHost, encrypt, encrypt, eid));
+
         printf("done.\n");
 
         // Record the stop event
@@ -366,19 +387,48 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size)
     }
 }
 
+cudaError_t secureCudaMemcpy(void *dst, void *src, size_t count, enum cudaMemcpyKind kind, int encrypt_s, int decrypt_d, unsigned long eid)
+{
+    printf("\nsecureCudaMemcpying...\n");
+    cudaError_t ret;
+    if(kind == cudaMemcpyHostToDevice && encrypt_s)
+    {
+        printf("Before encryption in CPU: ** %u **\n", ((unsigned int*)src)[1]);
+        enclave_encrypt_cpu(src, count/sizeof(int), eid);
+        // encrypt_cpu(src, count, eid);
+        printf("After encryption in CPU: ** %u **\n", ((unsigned int*)src)[1]);
+    }
+    else if(kind == cudaMemcpyDeviceToHost && encrypt_s)
+        encrypt_gpu(src, count/sizeof(int));
+
+    ret = cudaMemcpy(dst, src, count, kind);
+    
+    if(kind == cudaMemcpyHostToDevice && decrypt_d)
+        decrypt_gpu(dst, count/sizeof(int));
+    else if(kind == cudaMemcpyDeviceToHost && decrypt_d)
+    {
+        printf("Before decryption in CPU: ** %u **\n", ((unsigned int*)dst)[1]);
+        enclave_decrypt_cpu(dst, count/sizeof(int), eid);
+        // decrypt_cpu(dst, count, eid);
+        printf("After decryption in CPU: ** %u **\n", ((unsigned int*)dst)[1]);
+    }
+    printf("secureCudaMemcpying successfully!\n");
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Wrapper
 ////////////////////////////////////////////////////////////////////////////////
-int beginMatrixMulCUBLAS(int argc, char **argv)
+int beginMatrixMulCUBLAS(int argc, char **argv, unsigned long eid)
 {
     printf("[Matrix Multiply CUBLAS] - Starting...\n");
 
-    int devID = 0, sizeMult = 5;
+    int devID = 0, sizeMult = 4;
     sMatrixSize matrix_size;
 
     initializeCUDA(argc, argv, devID, sizeMult, matrix_size);
 
-    int matrix_result = matrixMultiply(argc, argv, devID, matrix_size);
+    int matrix_result = matrixMultiply(argc, argv, devID, matrix_size, eid);
 
     return matrix_result;
 }

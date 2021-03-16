@@ -55,6 +55,8 @@ enclave {
      */
     trusted {
         public void ecall_print_helloworld();
+        public void ecall_encrypt_cpu([in, out, count=len, size=4]void* data, int len);
+        public void ecall_decrypt_cpu([in, out, count=len, size=4]void* data, int len);
     };
 
     /* 

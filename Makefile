@@ -468,6 +468,14 @@ App/Enclave_u.o: App/Enclave_u.c
 	@$(CC) $(SGX_COMMON_CFLAGS) $(App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
+App/ErrorSGX.o: App/ErrorSGX.cpp 
+	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) $(INCLUDES) -c $< -o $@
+	@echo "CXX  <=  $<"
+
+App/EnclaveWrapper.o: App/EnclaveWrapper.cpp
+	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
 App/DeviceApp.o: App/DeviceApp.cu
 	@nvcc -c $< -o $@
 	@echo "NVCC  $@  <=  $<"
@@ -477,18 +485,11 @@ App/matrixMulCUBLAS.o: App/matrixMulCUBLAS.cu
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 	@echo "NVCC  $@  <=  $<"
 
-# App/matrixMulCUBLAS: matrixMulCUBLAS.o
-# 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
-# 	$(EXEC) mkdir -p ./bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
-# 	$(EXEC) cp $@ ./bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
-
 App/%.o: App/%.cpp  App/Enclave_u.h
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) $(INCLUDES) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-# ALL_LDFLAGS += $(App_Link_Flags)
-
-$(App_Name): App/Enclave_u.o $(App_Cpp_Objects) App/DeviceApp.o App/matrixMulCUBLAS.o
+$(App_Name): App/Enclave_u.o $(App_Cpp_Objects) App/ErrorSGX.o App/EnclaveWrapper.o App/DeviceApp.o App/matrixMulCUBLAS.o
 	# @$(CXX) $^ -o $@ $(App_Link_Flags)
 	# @nvcc $^ -o $@ -lcublas $(App_Link_Flags)
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) $^ -o $@ $(LIBRARIES) $(App_Link_Flags)
@@ -523,4 +524,4 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 .PHONY: clean
 
 clean:
-	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* App/DeviceApp.o App/matrixMulCUBLAS.o
+	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) App/Enclave_u.* $(Enclave_Cpp_Objects) Enclave/Enclave_t.* App/*.o

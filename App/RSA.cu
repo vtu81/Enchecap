@@ -8,14 +8,15 @@
 #define BUZZ_SIZE 10002
 
 unsigned long int p, q, n, e, d;
-void encrypt_cpu(void *ptr,int size);
-void decrypt_cpu(void *ptr,int size);
+void encrypt_cpu(void *ptr,int size, unsigned long eid);
+void decrypt_cpu(void *ptr,int size, unsigned long eid);
 void encrypt_gpu(void *ptr,int size);
 void decrypt_gpu(void *ptr,int size);
 int threadsPerBlock = 1024;
 int blocksPerGrid;
 float time_encrypt_cpu, time_decrypt_cpu,time_encrypt_gpu,time_decrypt_gpu;
-void encrypt_cpu(void *h_data,int len) {
+
+void encrypt_cpu(void *h_data, int len) {
 	struct timespec __begin,__end;
     clock_gettime(CLOCK_MONOTONIC, &__begin);
 	unsigned int *mm=(unsigned int *)h_data,*en=mm;
@@ -40,7 +41,7 @@ void encrypt_cpu(void *h_data,int len) {
 	printf("CPU Encryption:%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
 }
 
-void encrypt_gpu(void *d_data,int len) {
+void encrypt_gpu(void *d_data, int len) {
 	cudaEvent_t start_encrypt, stop_encrypt;
 	unsigned long int key = e;
 	// cudaSetDevice(1);
@@ -66,7 +67,7 @@ void encrypt_gpu(void *d_data,int len) {
 
 }
 
-void decrypt_gpu(void *d_data,int len) {
+void decrypt_gpu(void *d_data, int len) {
 	cudaEvent_t start_decrypt, stop_decrypt;
 	unsigned long int key = d;
 	// cudaSetDevice(1);
@@ -94,7 +95,7 @@ void decrypt_gpu(void *d_data,int len) {
 	printf("GPU Decryption:%f\n", time_decrypt_gpu);
 }
 
-void decrypt_cpu(void *h_data,int len) {
+void decrypt_cpu(void *h_data, int len) {
 	struct timespec __begin,__end;
     clock_gettime(CLOCK_MONOTONIC, &__begin);
 	unsigned int *mm=(unsigned int *)h_data,*en=mm;

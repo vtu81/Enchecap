@@ -19,6 +19,6 @@
 #define max(a,b) ((a > b) ? a : b)
 #endif
 
-int beginMatrixMulCUBLAS(int argc, char **argv);
+int beginMatrixMulCUBLAS(int argc, char **argv, unsigned long eid);
 
 #endif
