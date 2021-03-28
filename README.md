@@ -2,6 +2,8 @@
 
 An (onbuilding) **enc**rypted (**enc**lave-based) **he**terogeneous **ca**lculation **p**rotocol based on Nvidia CUDA and Intel SGX, designed and implemented by [Tinghao Xie](http://vtu.life), [Haoyang Shi](https://github.com/Luke-Skycrawler), [Zihang Li](https://github.com/zjulzhhh).
 
+![demo](./assets/demo.png)
+
 ---
 
 To **build** the project, you'll need to install and configure:
