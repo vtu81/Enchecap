@@ -472,6 +472,10 @@ App/ErrorSGX.o: App/ErrorSGX.cpp
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) $(INCLUDES) -c $< -o $@
 	@echo "CXX  <=  $<"
 
+App/Enchecap.o: App/Enchecap.cpp
+	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) $(INCLUDES) -c $< -o $@
+	@echo "CXX  <=  $<"
+
 App/EnclaveWrapper.o: App/EnclaveWrapper.cpp
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
@@ -489,7 +493,7 @@ App/%.o: App/%.cpp  App/Enclave_u.h
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) $(INCLUDES) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-$(App_Name): App/Enclave_u.o $(App_Cpp_Objects) App/ErrorSGX.o App/EnclaveWrapper.o App/DeviceApp.o App/matrixMulCUBLAS.o
+$(App_Name): App/Enclave_u.o $(App_Cpp_Objects) App/ErrorSGX.o App/EnclaveWrapper.o App/DeviceApp.o App/matrixMulCUBLAS.o App/Enchecap.o
 	# @$(CXX) $^ -o $@ $(App_Link_Flags)
 	# @nvcc $^ -o $@ -lcublas $(App_Link_Flags)
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) $^ -o $@ $(LIBRARIES) $(App_Link_Flags)
