@@ -41,8 +41,8 @@ extern "C" {
 
 int printf(const char* fmt, ...);
 void ecall_print_helloworld();
-void ecall_encrypt_cpu(void* data, int len);
-void ecall_decrypt_cpu(void* data, int len);
+void ecall_encrypt_cpu(void* data, int len, unsigned long int n, unsigned long int e);
+void ecall_decrypt_cpu(void* data, int len, unsigned long int n, unsigned long int d);
 
 
 #if defined(__cplusplus)

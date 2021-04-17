@@ -12,9 +12,9 @@
 #include "DeviceApp.h"
 #include "matrixMulCUBLAS.h"
 #include "ErrorSGX.h"
-#include "Enchecap.h"
+#include "Enchecap_host.h"
 
-/* Global EID shared by multiple threads */
+/* Global EID shared by multiple threads; SHOULD NOT BE REMOVED!!! */
 sgx_enclave_id_t global_eid = 0;
 
 /* OCall functions */
@@ -33,39 +33,38 @@ int SGX_CDECL main(int argc, char *argv[])
     (void)(argc);
     (void)(argv);
 
-    ECPreg ctx;
-    if(initEnchecap(global_eid, ctx) == -1)
+    /**
+     * Use a global `ECPreg ecpreg` to pass context of Enchecap
+     */
+    ECPreg ecpreg;
+    if(initEnchecap(global_eid, ecpreg) == -1) /* initialize ecpreg */
     {
         printf("Error while initiating Enchecap!\n");
         return -1;
     }
-    printf("Successfully initialize Enchecap!\neid = %ld\n", global_eid);
- 
-    /* Utilize edger8r attributes */
-    // edger8r_array_attributes();
-    // edger8r_pointer_attributes(); //print: Checksum(0x0x7ffdbe8d31d0, 100) = 0xfffd4143
-    // edger8r_type_attributes();
-    // edger8r_function_attributes();
-    
-    /* Utilize trusted libraries */
-    // ecall_libc_functions();
-    // ecall_libcxx_functions();
-    // ecall_thread_functions();
+    ecpreg.eid = global_eid; // saved `global_eid` into ECPreg
+    printf("Successfully initialize Enchecap!\neid = %ld\n", ecpreg.eid);
 
+    
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // Major code begin
+    ////////////////////////////////////////////////////////////////////////////////
+    
     /* Hello world! */
     ecall_print_helloworld(global_eid);
+    /* CUBLAS */
+    beginMatrixMulCUBLAS(argc, argv, ecpreg);
+    /* simple GPU-calling demo */
+    callGPU();
 
-    beginMatrixMulCUBLAS(argc, argv, global_eid);
+    ////////////////////////////////////////////////////////////////////////////////
+    // Major code end
+    ////////////////////////////////////////////////////////////////////////////////
 
     /* Destroy the enclave */
-    sgx_destroy_enclave(global_eid);
-    
-    // printf("Info: SampleEnclave successfully returned.\n");
-
-    // printf("Enter a character before exit ...\n");
-    // getchar();
-
-    callGPU();
+    sgx_destroy_enclave(ecpreg.eid);
+    printf("Info: Successfully returned.\n");
 
     return 0;
 }

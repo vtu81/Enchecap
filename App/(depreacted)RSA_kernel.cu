@@ -1,3 +1,5 @@
+#include "matrixMulCUBLAS.h"
+
 __device__ long long int mod(int base, int exponent, int den) {
 
 	long long int ret;

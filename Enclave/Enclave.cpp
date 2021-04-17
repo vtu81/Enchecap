@@ -1,34 +1,3 @@
-/*
- * Copyright (C) 2011-2020 Intel Corporation. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in
- *     the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Intel Corporation nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
-
 #include "Enclave.h"
 #include "Enclave_t.h" /* print_string */
 #include <stdarg.h>
@@ -37,7 +6,7 @@
 // #include <time.h>
 // #include <omp.h>
 
-/* 
+/**
  * printf: 
  *   Invokes OCALL to display the enclave buffer to the terminal.
  */
@@ -57,17 +26,20 @@ void ecall_print_helloworld()
     printf("Hello world!\n");
 }
 
-void ecall_encrypt_cpu(void* data, int len)
+/** FIXME:
+ * should accept the addresses of keys (n, e) as parameters in a safe way
+ */
+/**
+ * ecall_encrypt_cpu():
+ *   encrypt `data` with length `len` in the enclave
+ * 
+ * Usage:
+ *   should only be used for encrypting **user's keys** with **GPU-generated public key** from `ECPreg reg.userGpuPublicKey`.
+ */
+void ecall_encrypt_cpu(void* data, int len, unsigned long int n, unsigned long int e)
 {
 	printf("@ENCLAVE: \"CPU encrypting in enclave...");
 	printf("** %u ** -> ", ((unsigned int*)data)[1]);
-
-    unsigned long int p, q, n, e, d;
-    p = 74531;
-    q = 37019;
-    e = 0x10001;
-	d = 985968293;
-	n = p * q;
     
     // struct timespec __begin,__end;
     // clock_gettime(CLOCK_MONOTONIC, &__begin);
@@ -95,16 +67,23 @@ void ecall_encrypt_cpu(void* data, int len)
 	printf(" successfully!\"\n");
 }
 
-void ecall_decrypt_cpu(void* data, int len)
+/** FIXME:
+ * should accept the addresses of keys (n, d) as parameters in a safe way
+ */
+/**
+ * ecall_decrypt_cpu():
+ *   decrypt `data` with length `len` in the enclave
+ * 
+ * Usage:
+ *   Used for testing; not necessary in practical cases.
+ */
+void ecall_decrypt_cpu(void* data, int len, unsigned long int n, unsigned long int d)
 {
 	printf("@ENCLAVE: \"CPU decrypting in enclave...");
 	printf("** %u ** -> ", ((unsigned int*)data)[1]);
-    unsigned long int p, q, n, e, d;
-    p = 74531;
-    q = 37019;
-    e = 0x10001;
-	d = 985968293;
-	n = p * q;
+    // unsigned long int n, d;
+	// n = 74531 * 37019;
+	// d = 985968293;
 
     // struct timespec __begin,__end;
     // clock_gettime(CLOCK_MONOTONIC, &__begin);

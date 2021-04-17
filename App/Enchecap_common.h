@@ -1,5 +1,5 @@
-#ifndef ENCHECAP_H__
-#define ENCHECAP_H__
+#ifndef ENCHECAP_COMMON_H__
+#define ENCHECAP_COMMON_H__
 
 /* Registers structure for necessary address:
  * 1. in the enclave
@@ -7,6 +7,8 @@
  **/
 typedef struct ECPreg
 {
+    unsigned long eid;
+
     void* userPrivateKey;
     void* userPublicKey;
     void* userGpuPublicKey;
@@ -17,7 +19,5 @@ typedef struct ECPreg
     void* gpuUserPrivateKey;
     
 } ECPreg;
-
-int initEnchecap(unsigned long &eid, ECPreg ecpreg);
 
 #endif

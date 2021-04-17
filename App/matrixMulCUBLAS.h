@@ -11,6 +11,8 @@
 // CUDA and CUBLAS functions
 #include <helper_functions.h>
 #include <helper_cuda.h>
+// Enchecap
+#include "Enchecap_device.h"
 
 #ifndef min
 #define min(a,b) ((a < b) ? a : b)
@@ -19,6 +21,6 @@
 #define max(a,b) ((a > b) ? a : b)
 #endif
 
-int beginMatrixMulCUBLAS(int argc, char **argv, unsigned long eid);
+int beginMatrixMulCUBLAS(int argc, char **argv, ECPreg ecpreg);
 
 #endif
