@@ -1,7 +1,7 @@
 # `/App` File Structure
 
 ## Enchecap Library
-* `Enchecap_commom.h`: including definition of `struct ECPreg`
+* `Enchecap_common.h`: including definition of `struct ECPreg`
 * `Enchecap_host.h/cpp`:
     
     ```Cpp
