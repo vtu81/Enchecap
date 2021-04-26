@@ -23,5 +23,12 @@
 //! @param ecpreg     Gloabl Enchecap context
 ////////////////////////////////////////////////////////////////////////////////
 int initEnchecap(unsigned long &eid, ECPreg ecpreg);
-
+ ////////////////////////////////////////////////////////////////////////////////
+ //! init a transfer of GPU RSA public key
+ //! pk is an array containing 3 64-bit unsigned int d, n and e accordingly
+ //! whereas encrypt function being f(m)= m^d mod n, encrypt function g(m)=m^e mod n
+ //! user should apply for mem space beforehand
+ //! @param des        destination of the key pair copy
+ ////////////////////////////////////////////////////////////////////////////////
+void cudaGetPublicKey(unsigned long long *des);
 #endif

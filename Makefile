@@ -488,6 +488,10 @@ App/DeviceApp.o: App/DeviceApp.cu
 	@nvcc -c $< -o $@
 	@echo "NVCC  $@  <=  $<"
 
+App/void.o: App/void.cu
+	@nvcc -c $< -o $@
+	@echo "NVCC  $@  <=  $<"
+
 # matrixMulCUBLAS
 App/matrixMulCUBLAS.o: App/matrixMulCUBLAS.cpp
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
@@ -502,7 +506,7 @@ App/%.o: App/%.cpp  App/Enclave_u.h
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(App_Cpp_Flags) $(INCLUDES) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-$(App_Name): App/Enclave_u.o $(App_Cpp_Objects) App/ErrorSGX.o App/EnclaveWrapper.o App/DeviceApp.o App/matrixMulCUBLAS.o App/Enchecap_host.o App/Enchecap_device.o App/DeviceRSA.o
+$(App_Name): App/Enclave_u.o $(App_Cpp_Objects) App/ErrorSGX.o App/EnclaveWrapper.o App/DeviceApp.o App/matrixMulCUBLAS.o App/Enchecap_host.o App/Enchecap_device.o App/DeviceRSA.o App/void.o
 	# @$(CXX) $^ -o $@ $(App_Link_Flags)
 	# @nvcc $^ -o $@ -lcublas $(App_Link_Flags)
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) $^ -o $@ $(LIBRARIES) $(App_Link_Flags)

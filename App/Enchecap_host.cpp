@@ -31,6 +31,10 @@ int initialize_enclave(unsigned long &eid)
 int initEnchecap(unsigned long &eid, ECPreg ecpreg)
 {
     /* Initialize the enclave */
+    unsigned long long *pk;
+    pk=malloc(sizeof(unsigned long long)*3);
+    cudaGetPublicKey(pk);
+    ecpreg.gpuPublicKey=(void*)pk;
     if(initialize_enclave(eid) < 0){
         printf("Enter a character before exit ...\n");
         getchar();
