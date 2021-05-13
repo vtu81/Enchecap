@@ -34,7 +34,7 @@ __device__ unsigned int mod_optimized(unsigned int base,unsigned long int exp,un
 	return p;
 }
 
-__global__ void rsa(unsigned int * num,unsigned long int * key,unsigned long int * den,const int len) {
+__global__ void rsa_old(unsigned int * num,unsigned long int * key,unsigned long int * den,const int len) {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	if(i>=len)return;
 	unsigned int temp;
@@ -42,13 +42,70 @@ __global__ void rsa(unsigned int * num,unsigned long int * key,unsigned long int
 	//temp = mod_optimized(num[i], *key, *den);
 	atomicExch(&num[i], temp);
 }
+
+__global__ void rsa(unsigned int * num,unsigned long long *user_prime_pointer,const int eORd,const int len) {
+	unsigned long int *key;
+	unsigned long int *den;
+	if(eORd == 1) key = (unsigned long int *)&user_prime_pointer[2];
+	else key = (unsigned long int *)&user_prime_pointer[0];
+	den = (unsigned long int *)&user_prime_pointer[1];
+
+	int i = blockDim.x * blockIdx.x + threadIdx.x;
+	if(i>=len)return;
+	unsigned int temp;
+	temp = mod_optimized(num[i], *key, *den);
+	//temp = mod_optimized(num[i], *key, *den);
+	atomicExch(&num[i], temp);
+}
+
 /********************* CUDA Kernel Functions End *********************/
+/* An encrypting function on GPU */
+void encrypt_gpu(void *d_data, int len, void *user_prime_pointer) {
+	cudaEvent_t start_encrypt, stop_encrypt;
+	unsigned int *dev_num=(unsigned int*)d_data;
+	cudaEventCreate(&start_encrypt);
+	cudaEventCreate(&stop_encrypt);
+	cudaEventRecord(start_encrypt);
+	blocksPerGrid=(len+threadsPerBlock-1)/threadsPerBlock;
+	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)user_prime_pointer,1,len);
+	cudaEventRecord(stop_encrypt);
+	cudaEventSynchronize(stop_encrypt);
+	cudaThreadSynchronize();
+	cudaEventElapsedTime(&time_encrypt_gpu, start_encrypt, stop_encrypt);
+
+	time_encrypt_gpu /= 1000;
+	printf("GPU Encryption:%f\n", time_encrypt_gpu);
+
+}
+/* An decrypting function on GPU */
+void decrypt_gpu(void *d_data, int len, void *user_prime_pointer) {
+	cudaEvent_t start_decrypt, stop_decrypt;
+	unsigned int *dev_num=(unsigned int*)d_data;
+	cudaEventCreate(&start_decrypt);
+	cudaEventCreate(&stop_decrypt);
+	cudaEventRecord(start_decrypt);
+	blocksPerGrid=(len+threadsPerBlock-1)/threadsPerBlock;
+	printf("user_prime_pointer: %p\n", user_prime_pointer);
+	printf("hi1\n");
+	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)user_prime_pointer,0,len);
+	printf("hi2\n");
+	cudaEventRecord(stop_decrypt);
+	cudaEventSynchronize(stop_decrypt);
+	cudaThreadSynchronize();
+	cudaEventElapsedTime(&time_decrypt_gpu, start_decrypt, stop_decrypt);
+
+	time_decrypt_gpu /= 1000;
+	printf("GPU Decryption:%f\n", time_decrypt_gpu);
+}
+
+
+
 
 /** FIXME:
  * should accept another parameter `ECPreg ecpreg` and extract the address of keys (n, e) from it
  */
 /* An encrypting function on GPU */
-void encrypt_gpu(void *d_data, int len) {
+void encrypt_gpu_old(void *d_data, int len) {
 	cudaEvent_t start_encrypt, stop_encrypt;
 	unsigned long int key = e;
 	// cudaSetDevice(1);
@@ -62,7 +119,7 @@ void encrypt_gpu(void *d_data, int len) {
 	cudaEventCreate(&stop_encrypt);
 	cudaEventRecord(start_encrypt);
 	blocksPerGrid=(len+threadsPerBlock-1)/threadsPerBlock;
-	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,dev_key,dev_den,len);
+	rsa_old<<<blocksPerGrid, threadsPerBlock>>>(dev_num,dev_key,dev_den,len);
 	cudaEventRecord(stop_encrypt);
 	cudaEventSynchronize(stop_encrypt);
 	cudaThreadSynchronize();
@@ -70,7 +127,7 @@ void encrypt_gpu(void *d_data, int len) {
 	cudaFree(dev_key);
 	cudaFree(dev_den);
 	time_encrypt_gpu /= 1000;
-	printf("GPU Encryption:%f\n", time_encrypt_gpu);
+	printf("GPU Encryption(deprecated):%f\n", time_encrypt_gpu);
 
 }
 
@@ -78,7 +135,7 @@ void encrypt_gpu(void *d_data, int len) {
  * should accept another parameter `ECPreg ecpreg` and extract the address of keys (n, d) from it
  */
 /* An decrypting function on GPU */
-void decrypt_gpu(void *d_data, int len) {
+void decrypt_gpu_old(void *d_data, int len) {
 	cudaEvent_t start_decrypt, stop_decrypt;
 	unsigned long int key = d;
 	// cudaSetDevice(1);
@@ -93,7 +150,7 @@ void decrypt_gpu(void *d_data, int len) {
 	cudaEventCreate(&stop_decrypt);
 	cudaEventRecord(start_decrypt);
 	blocksPerGrid=(len+threadsPerBlock-1)/threadsPerBlock;
-	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,dev_key,dev_den,len);
+	rsa_old<<<blocksPerGrid, threadsPerBlock>>>(dev_num,dev_key,dev_den,len);
 	cudaEventRecord(stop_decrypt);
 	cudaEventSynchronize(stop_decrypt);
 	cudaThreadSynchronize();
@@ -103,11 +160,11 @@ void decrypt_gpu(void *d_data, int len) {
 	cudaFree(dev_den);
 	
 	time_decrypt_gpu /= 1000;
-	printf("GPU Decryption:%f\n", time_decrypt_gpu);
+	printf("GPU Decryption(deprecated):%f\n", time_decrypt_gpu);
 }
 
 /* (Deprected) An unsafe encrypting function on CPU */
-void encrypt_cpu(void *h_data, int len) {
+void encrypt_cpu_old(void *h_data, int len) {
 	struct timespec __begin,__end;
     clock_gettime(CLOCK_MONOTONIC, &__begin);
 	unsigned int *mm=(unsigned int *)h_data,*en=mm;
@@ -129,11 +186,11 @@ void encrypt_cpu(void *h_data, int len) {
 		en[i] = (unsigned int)k;		
 	}
 	clock_gettime(CLOCK_MONOTONIC,&__end);
-	printf("CPU Encryption:%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
+	printf("CPU Encryption(deprecated):%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
 }
 
 /* (Deprected) An unsafe decrypting function on CPU */
-void decrypt_cpu(void *h_data, int len) {
+void decrypt_cpu_old(void *h_data, int len) {
 	struct timespec __begin,__end;
     clock_gettime(CLOCK_MONOTONIC, &__begin);
 	unsigned int *mm=(unsigned int *)h_data,*en=mm;
@@ -152,5 +209,5 @@ void decrypt_cpu(void *h_data, int len) {
 		mm[i] = (unsigned int)k;
 	}
 	clock_gettime(CLOCK_MONOTONIC,&__end);
-	printf("CPU Decryption:%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
+	printf("CPU Decryption(deprecated):%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
 }

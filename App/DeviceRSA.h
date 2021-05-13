@@ -16,7 +16,10 @@
 #include <omp.h>
 #define BUZZ_SIZE 10002
 
-void encrypt_gpu(void *ptr, int size);
-void decrypt_gpu(void *ptr, int size);
+void encrypt_gpu(void *ptr, int size, void *user_prime_pointer);
+void decrypt_gpu(void *ptr, int size, void *user_prime_pointer);
+
+void encrypt_gpu_old(void *ptr, int size);
+void decrypt_gpu_old(void *ptr, int size);
 
 #endif
