@@ -154,4 +154,28 @@
      printf("from host :%llu %llu %lld",prime_host[0],prime_host[1],prime_host[2]);
      for(int i=0;i<3;i++)pk[i]=prime_host[i];
  }
+
+// FIXME
+void cudaGetPublicKeyStrawMan(unsigned long long *pk, unsigned long long **prime_pointer_addr){
+    unsigned long int p, q, n, e, d;
+    p = 74531;
+    q = 37019;
+    e = 0x10001;
+    d = 985968293;
+    n = p * q;
+    unsigned long long prime_host[3] = {d, n, e};
+
+    cudaMalloc(&prime_pointer,3*sizeof(unsigned long long));
+
+    cudaMemcpy(prime_pointer,&prime_host,sizeof(prime_host),cudaMemcpyHostToDevice);
+    unsigned long long test[3];
+    cudaMemcpy(&test,prime_pointer,sizeof(test),cudaMemcpyDeviceToHost);
+
+    printf("prime_host(cpu) :%llu %llu %lld\n",prime_host[0],prime_host[1],prime_host[2]);
+    printf("prime_pointer(gpu) :%llu %llu %lld\n",test[0],test[1],test[2]);
+
+    for(int i=0;i<3;i++)pk[i]=prime_host[i];
+    *prime_pointer_addr = prime_pointer;
+    printf("prime_pointer: %p\t*prime_pointer_addr: %p\n", prime_pointer, *prime_pointer_addr);
+}
  #endif

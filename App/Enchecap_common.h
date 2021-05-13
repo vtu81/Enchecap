@@ -17,6 +17,9 @@ typedef struct ECPreg
     void* gpuPublicKey;
     void* gpuUserPublicKey;
     void* gpuUserPrivateKey;
+
+    void* prime_pointer; // __constant__ variable on GPU
+    void* user_prime_pointer; // Another __constant__ variable on GPU; but temporarily use the same address as `prime_pointer`
     
 } ECPreg;
 

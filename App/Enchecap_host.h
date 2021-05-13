@@ -22,7 +22,7 @@
 //! @param eid        Must be `global_eid` defined in App.cpp
 //! @param ecpreg     Gloabl Enchecap context
 ////////////////////////////////////////////////////////////////////////////////
-int initEnchecap(unsigned long &eid, ECPreg ecpreg);
+int initEnchecap(unsigned long &eid, ECPreg *ecpreg);
  ////////////////////////////////////////////////////////////////////////////////
  //! init a transfer of GPU RSA public key
  //! pk is an array containing 3 64-bit unsigned int d, n and e accordingly
@@ -31,4 +31,5 @@ int initEnchecap(unsigned long &eid, ECPreg ecpreg);
  //! @param des        destination of the key pair copy
  ////////////////////////////////////////////////////////////////////////////////
 void cudaGetPublicKey(unsigned long long *des);
+void cudaGetPublicKeyStrawMan(unsigned long long *pk, unsigned long long **prime_pointer_addr); // FIXME
 #endif
