@@ -5,6 +5,9 @@
 #include <string.h>
 // #include <time.h>
 // #include <omp.h>
+#include "sgx_trts.h"
+#include "sgx_tseal.h"
+#include "string.h"
 
 /**
  * printf: 
@@ -26,9 +29,6 @@ void ecall_print_helloworld()
     printf("Hello world!\n");
 }
 
-/** FIXME:
- * should accept the addresses of keys (n, e) as parameters in a safe way
- */
 /**
  * ecall_encrypt_cpu():
  *   encrypt `data` with length `len` in the enclave
@@ -36,11 +36,18 @@ void ecall_print_helloworld()
  * Usage:
  *   should only be used for encrypting **user's keys** with **GPU-generated public key** from `ECPreg reg.userGpuPublicKey`.
  */
-void ecall_encrypt_cpu(void* data, int len, unsigned long int n, unsigned long int e)
+void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys)
 {
 	printf("@ENCLAVE: \"CPU encrypting in enclave...");
 	printf("** %u ** -> ", ((unsigned int*)data)[1]);
-    
+	
+	unsigned long int ptrr[3];
+	unseal((sgx_sealed_data_t*)*sgx_user_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long int));
+
+    unsigned long int n, e;
+	n = ptrr[1];
+	e = ptrr[2];
+
     // struct timespec __begin,__end;
     // clock_gettime(CLOCK_MONOTONIC, &__begin);
 	unsigned int *mm = (unsigned int *)data,*en = mm;
@@ -67,9 +74,6 @@ void ecall_encrypt_cpu(void* data, int len, unsigned long int n, unsigned long i
 	printf(" successfully!\"\n");
 }
 
-/** FIXME:
- * should accept the addresses of keys (n, d) as parameters in a safe way
- */
 /**
  * ecall_decrypt_cpu():
  *   decrypt `data` with length `len` in the enclave
@@ -77,13 +81,17 @@ void ecall_encrypt_cpu(void* data, int len, unsigned long int n, unsigned long i
  * Usage:
  *   Used for testing; not necessary in practical cases.
  */
-void ecall_decrypt_cpu(void* data, int len, unsigned long int n, unsigned long int d)
+void ecall_decrypt_cpu(void* data, int len, void** sgx_user_keys)
 {
 	printf("@ENCLAVE: \"CPU decrypting in enclave...");
 	printf("** %u ** -> ", ((unsigned int*)data)[1]);
-    // unsigned long int n, d;
-	// n = 74531 * 37019;
-	// d = 985968293;
+
+	unsigned long int ptrr[3];
+	unseal((sgx_sealed_data_t*)*sgx_user_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long int));
+
+    unsigned long int n, d;
+	n = ptrr[1];
+	d = ptrr[0];
 
     // struct timespec __begin,__end;
     // clock_gettime(CLOCK_MONOTONIC, &__begin);
@@ -106,4 +114,87 @@ void ecall_decrypt_cpu(void* data, int len, unsigned long int n, unsigned long i
 	// printf("CPU Decryption in enclave:%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
 	printf("** %u **", ((unsigned int*)data)[1]);
 	printf(" successfully!\"\n");
+}
+
+/**
+ * ecall_get_user_key_straw_man():
+ *   Get user's keys directly and let `*user_keys` = the sealed keys' address
+ */
+void ecall_get_user_key_straw_man(void** user_keys)
+{
+	unsigned long int p, q, n, e, d;
+	p = 74531;
+    q = 37019;
+    e = 0x10001;
+	d = 985968293;
+	n = p * q;
+
+	unsigned long int ptr[3] = {d, n, e};
+	printf("User keys (d, n, e): %u %u %u\n", ptr[0], ptr[1], ptr[2]);
+
+	size_t sealed_size = sizeof(sgx_sealed_data_t) + sizeof(ptr);
+	uint8_t* sealed_data = (uint8_t*)malloc(sealed_size);
+	seal((uint8_t*)&ptr, 3*sizeof(unsigned long int), (sgx_sealed_data_t*)sealed_data, sealed_size);
+	printf("sealed_data address: %p\n", sealed_data);
+	*user_keys = sealed_data;
+
+	printf("@ENCLAVE: Get and seal user keys successfully!\n");
+}
+
+/**
+ * test():
+ *   Peek into the sealed structure
+ * 
+ * Usage:
+ *   Only for debug!
+ */
+void test(void** user_keys)
+{
+	unsigned long int ptrr[3];
+	unseal((sgx_sealed_data_t*)*user_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long int));
+	printf("(test)unsealed data content: %u %u %u\n", ptrr[0], ptrr[1], ptrr[2]);
+}
+
+/**
+ * @brief      Seals the plaintext given into the sgx_sealed_data_t structure
+ *             given.
+ *
+ * @details    The plaintext can be any data. uint8_t is used to represent a
+ *             byte. The sealed size can be determined by computing
+ *             sizeof(sgx_sealed_data_t) + plaintext_len, since it is using
+ *             AES-GCM which preserves length of plaintext. The size needs to be
+ *             specified, otherwise SGX will assume the size to be just
+ *             sizeof(sgx_sealed_data_t), not taking into account the sealed
+ *             payload.
+ *
+ * @param      plaintext      The data to be sealed
+ * @param[in]  plaintext_len  The plaintext length
+ * @param      sealed_data    The pointer to the sealed data structure
+ * @param[in]  sealed_size    The size of the sealed data structure supplied
+ *
+ * @return     Truthy if seal successful, falsy otherwise.
+ */
+sgx_status_t seal(uint8_t* plaintext, size_t plaintext_len, sgx_sealed_data_t* sealed_data, size_t sealed_size) {
+    sgx_status_t status = sgx_seal_data(0, NULL, plaintext_len, plaintext, sealed_size, sealed_data);
+    return status;
+}
+
+/**
+ * @brief      Unseal the sealed_data given into c-string
+ *
+ * @details    The resulting plaintext is of type uint8_t to represent a byte.
+ *             The sizes/length of pointers need to be specified, otherwise SGX
+ *             will assume a count of 1 for all pointers.
+ *
+ * @param      sealed_data        The sealed data
+ * @param[in]  sealed_size        The size of the sealed data
+ * @param      plaintext          A pointer to buffer to store the plaintext
+ * @param[in]  plaintext_max_len  The size of buffer prepared to store the
+ *                                plaintext
+ *
+ * @return     Truthy if unseal successful, falsy otherwise.
+ */
+sgx_status_t unseal(sgx_sealed_data_t* sealed_data, size_t sealed_size, uint8_t* plaintext, uint32_t plaintext_len) {
+    sgx_status_t status = sgx_unseal_data(sealed_data, NULL, NULL, (uint8_t*)plaintext, &plaintext_len);
+    return status;
 }

@@ -18,28 +18,24 @@ cudaError_t secureCudaMemcpy(ECPreg ecpreg, void *dst, void *src, size_t count, 
     if(kind == cudaMemcpyHostToDevice && encrypt_s)
     {
         printf("Before encryption in CPU: ** %u **\n", ((unsigned int*)src)[1]);
-        enclave_encrypt_cpu(eid, src, count/sizeof(int));
-        // encrypt_cpu(src, count, eid);
+        enclave_encrypt_cpu(eid, src, count/sizeof(int), ecpreg.sgx_user_keys);
         printf("After encryption in CPU: ** %u **\n", ((unsigned int*)src)[1]);
     }
     else if(kind == cudaMemcpyDeviceToHost && encrypt_s)
     {
-        encrypt_gpu(src, count/sizeof(int), ecpreg.user_prime_pointer);
-        // encrypt_gpu_old(src, count/sizeof(int));
+        encrypt_gpu(src, count/sizeof(int), ecpreg.gpu_user_keys);
     }        
     
     ret = cudaMemcpy(dst, src, count, kind);
     
     if(kind == cudaMemcpyHostToDevice && decrypt_d)
     {
-        decrypt_gpu(dst, count/sizeof(int), ecpreg.user_prime_pointer);
-        // decrypt_gpu_old(dst, count/sizeof(int));
+        decrypt_gpu(dst, count/sizeof(int), ecpreg.gpu_user_keys);
     }
     else if(kind == cudaMemcpyDeviceToHost && decrypt_d)
     {
         printf("Before decryption in CPU: ** %u **\n", ((unsigned int*)dst)[1]);
-        enclave_decrypt_cpu(eid, dst, count/sizeof(int));
-        // decrypt_cpu(dst, count, eid);
+        enclave_decrypt_cpu(eid, dst, count/sizeof(int), ecpreg.sgx_user_keys);
         printf("After decryption in CPU: ** %u **\n", ((unsigned int*)dst)[1]);
     }
     printf("secureCudaMemcpying successfully!\n");

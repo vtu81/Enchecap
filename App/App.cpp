@@ -37,15 +37,12 @@ int SGX_CDECL main(int argc, char *argv[])
      * Use a global `ECPreg ecpreg` to pass context of Enchecap
      */
     ECPreg ecpreg;
-    printf("user_prime_pointer: %p\n", ecpreg.user_prime_pointer);
     if(initEnchecap(global_eid, &ecpreg) == -1) /* initialize ecpreg */
     {
         printf("Error while initiating Enchecap!\n");
         return -1;
     }
-    printf("Successfully initialize Enchecap!\necp.eid = %ld\n", ecpreg.eid);
-    printf("ecp.prime_pointer: %p\n", ecpreg.prime_pointer);
-    printf("ecp.user_prime_pointer: %p\n", ecpreg.user_prime_pointer);
+    printf("Successfully initialize Enchecap with ecp.eid = %ld!\n", ecpreg.eid);
     
 
     ////////////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,5 @@
 #include "Enchecap_host.h"
+#include "EnclaveWrapper.h"
 
 /* Initialize the enclave:
  *   Call sgx_create_enclave to initialize an enclave instance
@@ -30,22 +31,6 @@ int initialize_enclave(unsigned long &eid)
 ////////////////////////////////////////////////////////////////////////////////
 int initEnchecap(unsigned long &eid, ECPreg *ecpreg)
 {
-    /* Fetch the user's key and store them in the enclave */
-    //......
-
-    /* Initialize GPU key */
-    unsigned long long *pk;
-    unsigned long long *prime_pointer;
-    pk=(unsigned long long *)malloc(sizeof(unsigned long long)*3);
-    // cudaGetPublicKey(pk);
-    cudaGetPublicKeyStrawMan(pk, &prime_pointer); // FIXME: Just a straw man; please replace it with the real one without changing the interface.
-    ecpreg->gpuPublicKey = (void*)pk;
-    ecpreg->prime_pointer = (void*)prime_pointer;
-
-    /* Key exchange */
-    //FIXME: Not done yet. The GPU address `user_prime_pointer` should eventually point to the user's keys (d, n, e).
-    ecpreg->user_prime_pointer = ecpreg->prime_pointer;
-    
     /* Initialize the enclave */
     if(initialize_enclave(eid) < 0){
         printf("Enter a character before exit ...\n");
@@ -53,5 +38,21 @@ int initEnchecap(unsigned long &eid, ECPreg *ecpreg)
         return -1; 
     }
     ecpreg->eid = eid; // saved `eid` into ECPreg
+
+    /* Fetch the user's key and store them in the enclave */
+    enclave_getUserKey(ecpreg);
+
+    /* Initialize GPU key */
+    unsigned long long *cpu_gpu_keys;
+    unsigned long long *gpu_gpu_keys;
+    cpu_gpu_keys=(unsigned long long *)malloc(sizeof(unsigned long long)*3);
+    // cudaGetPublicKey(cpu_gpu_keys);
+    cudaGetPublicKeyStrawMan(cpu_gpu_keys, &gpu_gpu_keys); // FIXME: Just a straw man; please replace it with the real one without changing the interface.
+    ecpreg->gpu_gpu_keys = (void*)gpu_gpu_keys;
+
+    /* Key exchange */
+    //FIXME: Not done yet. The GPU address `gpu_user_keys` should eventually point to the user's keys (d, n, e).
+    ecpreg->gpu_user_keys = ecpreg->gpu_gpu_keys;
+
     return 0;
 }

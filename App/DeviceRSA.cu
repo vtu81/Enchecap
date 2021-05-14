@@ -43,12 +43,12 @@ __global__ void rsa_old(unsigned int * num,unsigned long int * key,unsigned long
 	atomicExch(&num[i], temp);
 }
 
-__global__ void rsa(unsigned int * num,unsigned long long *user_prime_pointer,const int eORd,const int len) {
+__global__ void rsa(unsigned int * num,unsigned long long *gpu_user_keys,const int eORd,const int len) {
 	unsigned long int *key;
 	unsigned long int *den;
-	if(eORd == 1) key = (unsigned long int *)&user_prime_pointer[2];
-	else key = (unsigned long int *)&user_prime_pointer[0];
-	den = (unsigned long int *)&user_prime_pointer[1];
+	if(eORd == 1) key = (unsigned long int *)&gpu_user_keys[2];
+	else key = (unsigned long int *)&gpu_user_keys[0];
+	den = (unsigned long int *)&gpu_user_keys[1];
 
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	if(i>=len)return;
@@ -60,14 +60,14 @@ __global__ void rsa(unsigned int * num,unsigned long long *user_prime_pointer,co
 
 /********************* CUDA Kernel Functions End *********************/
 /* An encrypting function on GPU */
-void encrypt_gpu(void *d_data, int len, void *user_prime_pointer) {
+void encrypt_gpu(void *d_data, int len, void *gpu_user_keys) {
 	cudaEvent_t start_encrypt, stop_encrypt;
 	unsigned int *dev_num=(unsigned int*)d_data;
 	cudaEventCreate(&start_encrypt);
 	cudaEventCreate(&stop_encrypt);
 	cudaEventRecord(start_encrypt);
 	blocksPerGrid=(len+threadsPerBlock-1)/threadsPerBlock;
-	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)user_prime_pointer,1,len);
+	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)gpu_user_keys,1,len);
 	cudaEventRecord(stop_encrypt);
 	cudaEventSynchronize(stop_encrypt);
 	cudaThreadSynchronize();
@@ -78,17 +78,14 @@ void encrypt_gpu(void *d_data, int len, void *user_prime_pointer) {
 
 }
 /* An decrypting function on GPU */
-void decrypt_gpu(void *d_data, int len, void *user_prime_pointer) {
+void decrypt_gpu(void *d_data, int len, void *gpu_user_keys) {
 	cudaEvent_t start_decrypt, stop_decrypt;
 	unsigned int *dev_num=(unsigned int*)d_data;
 	cudaEventCreate(&start_decrypt);
 	cudaEventCreate(&stop_decrypt);
 	cudaEventRecord(start_decrypt);
 	blocksPerGrid=(len+threadsPerBlock-1)/threadsPerBlock;
-	printf("user_prime_pointer: %p\n", user_prime_pointer);
-	printf("hi1\n");
-	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)user_prime_pointer,0,len);
-	printf("hi2\n");
+	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)gpu_user_keys,0,len);
 	cudaEventRecord(stop_decrypt);
 	cudaEventSynchronize(stop_decrypt);
 	cudaThreadSynchronize();

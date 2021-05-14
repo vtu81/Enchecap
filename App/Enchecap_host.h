@@ -31,5 +31,5 @@ int initEnchecap(unsigned long &eid, ECPreg *ecpreg);
  //! @param des        destination of the key pair copy
  ////////////////////////////////////////////////////////////////////////////////
 void cudaGetPublicKey(unsigned long long *des);
-void cudaGetPublicKeyStrawMan(unsigned long long *pk, unsigned long long **prime_pointer_addr); // FIXME
+void cudaGetPublicKeyStrawMan(unsigned long long *cpu_gpu_keys, unsigned long long **gpu_gpu_keys_addr); // FIXME
 #endif

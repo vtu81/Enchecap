@@ -5,41 +5,29 @@
 
 void print_error_message_(sgx_status_t ret);
 
-/** FIXME:
- * should accept another parameter `ECPreg ecpreg` and extract the address of keys (n, e) from it
- */
-void enclave_encrypt_cpu(unsigned long eid, void* data, int len)
+void enclave_getUserKey(ECPreg *ecpreg)
+{
+	ecall_get_user_key_straw_man(ecpreg->eid, &(ecpreg->sgx_user_keys));
+	printf("ecpreg->sgx_user_keys: %p\n", ecpreg->sgx_user_keys);
+	test(ecpreg->eid, &(ecpreg->sgx_user_keys));
+}
+
+void enclave_encrypt_cpu(unsigned long eid, void* data, int len, void* sgx_user_keys)
 {
 	sgx_status_t ret;
 
-	unsigned long int p, q, n, e, d;
-	p = 74531;
-    q = 37019;
-    e = 0x10001;
-	d = 985968293;
-	n = p * q;
-
-	ret = ecall_encrypt_cpu(eid, data, len, n, e);
+	printf("sgx_user_keys: %p\n", sgx_user_keys);
+	ret = ecall_encrypt_cpu(eid, data, len, &sgx_user_keys);
 	if (ret != SGX_SUCCESS) {
         print_error_message(ret);
 	}
 }
 
-/** FIXME:
- * should accept another parameter `ECPreg ecpreg` and extract the address of keys (n, d) from it
- */
-void enclave_decrypt_cpu(unsigned long eid, void* data, int len)
+void enclave_decrypt_cpu(unsigned long eid, void* data, int len, void* sgx_user_keys)
 {
 	sgx_status_t ret;
 
-	unsigned long int p, q, n, e, d;
-	p = 74531;
-    q = 37019;
-    e = 0x10001;
-	d = 985968293;
-	n = p * q;
-	
-	ret = ecall_decrypt_cpu(eid, data, len, n, d);
+	ret = ecall_decrypt_cpu(eid, data, len, &sgx_user_keys);
 	if (ret != SGX_SUCCESS) {
         print_error_message(ret);
 	}
