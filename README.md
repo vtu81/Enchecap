@@ -46,3 +46,14 @@ Run with:
 ./app
 ```
 
+## TODO
+
+### Phase I: Initialization
+- [x] Create an enclave
+- [ ] Get user's keys (and seal them)
+- [x] GPU generate its own keys
+- [ ] Key exchange
+
+### Phase II: Calculation
+- [x] En/Decrypt in enclave (with unsealed keys in enclave memory only)
+- [x] En/Decrypt on GPU (with keys in device memory only)
