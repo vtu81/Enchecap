@@ -62,6 +62,7 @@ enclave {
         public void test([in]void** user_keys);
         public sgx_status_t seal([in, size=plaintext_len]uint8_t* plaintext, size_t plaintext_len, [out, size=sealed_size]sgx_sealed_data_t* sealed_data, size_t sealed_size);
         public sgx_status_t unseal([in, size=sealed_size]sgx_sealed_data_t* sealed_data, size_t sealed_size, [out, size=plaintext_len]uint8_t* plaintext, uint32_t plaintext_len);
+        public void ecall_encrypt_user_keys_with_untrusted_key_cpu([in]void** sgx_user_keys, [in, count=2, size=8]void* untrusted_keys, [in, out]void** ret);
     };
 
     /* 

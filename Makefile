@@ -489,7 +489,8 @@ App/DeviceApp.o: App/DeviceApp.cu
 	@echo "NVCC  $@  <=  $<"
 
 App/void.o: App/void.cu
-	@nvcc -c $< -o $@
+	# @nvcc -c $< -o $@
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 	@echo "NVCC  $@  <=  $<"
 
 # matrixMulCUBLAS

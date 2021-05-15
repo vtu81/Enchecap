@@ -38,21 +38,31 @@ int initEnchecap(unsigned long &eid, ECPreg *ecpreg)
         return -1; 
     }
     ecpreg->eid = eid; // saved `eid` into ECPreg
+    printf("eid = %lu\n", eid);
+    printf("---------Create enclave successfully!---------\n");
 
     /* Fetch the user's key and store them in the enclave */
-    enclave_getUserKey(ecpreg);
+    enclave_get_user_keys(ecpreg);
+    printf("----Get and seal user's keys successfully!----\n");
 
     /* Initialize GPU key */
     unsigned long long *cpu_gpu_keys;
     unsigned long long *gpu_gpu_keys;
-    cpu_gpu_keys=(unsigned long long *)malloc(sizeof(unsigned long long)*3);
+    cpu_gpu_keys=(unsigned long long *)malloc(sizeof(unsigned long long)*2);
     // cudaGetPublicKey(cpu_gpu_keys);
     cudaGetPublicKeyStrawMan(cpu_gpu_keys, &gpu_gpu_keys); // FIXME: Just a straw man; please replace it with the real one without changing the interface.
+    ecpreg->cpu_gpu_keys = (void*)cpu_gpu_keys;
     ecpreg->gpu_gpu_keys = (void*)gpu_gpu_keys;
+    printf("-----GPU's keys initialized successfully!-----\n");
 
     /* Key exchange */
-    //FIXME: Not done yet. The GPU address `gpu_user_keys` should eventually point to the user's keys (d, n, e).
-    ecpreg->gpu_user_keys = ecpreg->gpu_gpu_keys;
+    void* encrypted_user_keys = enclave_encrypt_user_keys_with_gpu_keys(ecpreg); // encrypt the user's keys with 
+                                                                                 // GPU's public keys (n, e) at 
+                                                                                 // `ecpreg->cpu_gpu_keys`
+    cudaDecryptUserKeys(encrypted_user_keys, ecpreg->gpu_gpu_keys, &ecpreg->gpu_user_keys); // GPU decrypts the `encrypted_user_keys` with its (d, n)
+                                                                                            // and hold the decrypted keys in device memory (as a 
+                                                                                            // global pointer), whose address is recorded at `ecpreg->gpu_user_keys`
+    printf("----------Key exchange successfully!----------\n");
 
     return 0;
 }

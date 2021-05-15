@@ -150,6 +150,7 @@ void ecall_get_user_key_straw_man(void** user_keys)
  */
 void test(void** user_keys)
 {
+	printf("sizeof(int) = %d\n", sizeof(int));
 	unsigned long int ptrr[3];
 	unseal((sgx_sealed_data_t*)*user_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long int));
 	printf("(test)unsealed data content: %u %u %u\n", ptrr[0], ptrr[1], ptrr[2]);
@@ -197,4 +198,68 @@ sgx_status_t seal(uint8_t* plaintext, size_t plaintext_len, sgx_sealed_data_t* s
 sgx_status_t unseal(sgx_sealed_data_t* sealed_data, size_t sealed_size, uint8_t* plaintext, uint32_t plaintext_len) {
     sgx_status_t status = sgx_unseal_data(sealed_data, NULL, NULL, (uint8_t*)plaintext, &plaintext_len);
     return status;
+}
+
+/**
+ * ecall_encrypt_with_untrusted_key_cpu():
+ *   unseal `sgx_user_keys` to get the user's keys, and encrypt the keys
+ *   in the enclave using `untrusted_keys` --> (n, e), writing the result's addres into `*ret`.
+ * 
+ * Usage:
+ *   should only be used for encrypting **user's keys** with **GPU-generated public key** from `ECPreg reg.userGpuPublicKey`.
+ */
+void ecall_encrypt_user_keys_with_untrusted_key_cpu(void** sgx_user_keys, void* untrusted_keys, void** ret)
+{
+	//unseal user's keys to `ptrr`
+	unsigned long int ptrr[3];
+	unseal((sgx_sealed_data_t*)*sgx_user_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long int));
+	
+	//save the user's keys in `data`, waiting for encryption
+	void* data = malloc(3 * sizeof(unsigned long int));
+	int len = 3 * sizeof(unsigned long int) / sizeof(int);
+	((unsigned long int*)data)[0] = ptrr[0];
+	((unsigned long int*)data)[1] = ptrr[1];
+	((unsigned long int*)data)[2] = ptrr[2];
+
+	printf("@ENCLAVE: \"before encryption, user's keys look like this\tdata[0] = %u, data[1] = %u, data[2] = %u\"\n", ((unsigned long int*)data)[0], ((unsigned long int*)data)[1], ((unsigned long int*)data)[2]);
+
+	unsigned long int n, e, d;
+	n = ((unsigned long long*)untrusted_keys)[0];
+	e = ((unsigned long long*)untrusted_keys)[1];
+
+	unsigned int *mm = (unsigned int *)data,*en = mm;
+	for(int i = 0; i < len; i++){
+		unsigned long key = e, k = 1, exp = mm[i] % n;
+		while(key){
+			if(key % 2){
+				k *= exp;
+				k %= n;
+			}
+			key /= 2;
+			exp *= exp;
+			exp %= n;
+		}
+		en[i] = (unsigned int)k;		
+	}
+
+	printf("@ENCLAVE: \"after encryption, user's keys look like this\tdata[0] = %u, data[1] = %u, data[2] = %u\"\n", ((unsigned long int*)data)[0], ((unsigned long int*)data)[1], ((unsigned long int*)data)[2]);
+	*ret = data;
+
+	// Debug only
+	// d = 107433065;
+	// #pragma omp parallel for
+	// for(int i=0;i<len;i++) {
+	// 	unsigned long ct = en[i]%n,k = 1,key=d;
+	// 	while(key){
+	// 		if(key%2==1){
+	// 			k*=ct;
+	// 			k%=n;
+	// 		}
+	// 		key/=2;
+	// 		ct*=ct;
+	// 		ct%=n;
+	// 	}
+	// 	mm[i] = (unsigned int)k;
+	// }
+	// printf("@ENCLAVE: \"after decryption, user's keys look like this\tdata[0] = %u, data[1] = %u, data[2] = %u\"\n", ((unsigned long int*)data)[0], ((unsigned long int*)data)[1], ((unsigned long int*)data)[2]);
 }

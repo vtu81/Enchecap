@@ -6,6 +6,7 @@
  * ***************************************************************/
  #include <stdlib.h>
  #include <stdio.h>
+ #include "DeviceRSA.h"
  #define POOL 10
  // #define _DEBUG 1
  // FIXME: margin
@@ -15,6 +16,7 @@
  __device__ int tt=1023141123;
  __constant__ int * _ret;
  __constant__ unsigned long long * prime_pointer;
+ __constant__ unsigned long long * gpu_user_keys;
  #define nprimes (sizeof(small_primes_host)/sizeof(unsigned))
  __device__ void prime(unsigned long long x,int *ret){
      // dirty implementation
@@ -158,24 +160,56 @@
 // FIXME
 void cudaGetPublicKeyStrawMan(unsigned long long *cpu_gpu_keys, unsigned long long **gpu_gpu_keys_addr){
     unsigned long int p, q, n, e, d;
-    p = 74531;
-    q = 37019;
+    
+    /* The BUG with RSA En/Decryption algorithm is that, we must group the data to be encrypted so that every block `m`'s size is LESS THAN `n`! */
+    
+    // This RSA pair is the same as the user's keys, which won't work properly (`n` encrypted by `(n,e)` would generate 0)
+    // p = 74531;
+    // q = 37019;
+    // e = 0x10001;
+    // d = 985968293;
+    // n = p * q;
+    
+    // This RSA pair doesn't work :(
+    // p = 61813;
+    // q = 29347;
+    // e = 0x10001;
+    // d = 471467537;
+    // n = p * q;
+
+    // This RSA pair works :)
+    p = 74831;
+    q = 37619;
     e = 0x10001;
-    d = 985968293;
+    d = 780225773;
     n = p * q;
+
     unsigned long long prime_host[3] = {d, n, e};
 
     cudaMalloc(&prime_pointer,3*sizeof(unsigned long long));
 
     cudaMemcpy(prime_pointer,&prime_host,sizeof(prime_host),cudaMemcpyHostToDevice);
     
-    // unsigned long long test[3];
-    // cudaMemcpy(&test,prime_pointer,sizeof(test),cudaMemcpyDeviceToHost);
-    // printf("prime_host(cpu) :%llu %llu %lld\n",prime_host[0],prime_host[1],prime_host[2]);
-    // printf("prime_pointer(gpu) :%llu %llu %lld\n",test[0],test[1],test[2]);
+    //Debug output
+    unsigned long long test[3];
+    cudaMemcpy(&test,prime_pointer,sizeof(test),cudaMemcpyDeviceToHost);
+    printf("(debug)GPU's keys in host memory:%llu %llu %lld\n",prime_host[0],prime_host[1],prime_host[2]);
+    printf("(debug)GPU's keys in device memory:%llu %llu %lld\n",test[0],test[1],test[2]);
 
-    for(int i=0;i<3;i++)cpu_gpu_keys[i] = prime_host[i];
+    for(int i=0;i<2;i++) cpu_gpu_keys[i] = prime_host[i + 1]; // only copy (n, e) to host
     *gpu_gpu_keys_addr = prime_pointer;
     // printf("prime_pointer: %p\t*gpu_gpu_keys_addr: %p\n", prime_pointer, *gpu_gpu_keys_addr);
+}
+
+void cudaDecryptUserKeys(void* encrypted_user_keys, void *gpu_gpu_keys, void** gpu_user_keys_addr)
+{
+    cudaMalloc(&gpu_user_keys, 3*sizeof(unsigned long int)); // malloc for global address `gpu_user_keys`
+    cudaMemcpy(gpu_user_keys, encrypted_user_keys, sizeof(unsigned long int) * 3, cudaMemcpyHostToDevice); // copy encrypted user keys to device
+    decrypt_gpu(gpu_user_keys, 3 * sizeof(unsigned long int)/sizeof(int), gpu_gpu_keys); // decrypt user's keys
+    *gpu_user_keys_addr = gpu_user_keys;
+
+    unsigned long int test[3];
+    cudaMemcpy(test, gpu_user_keys, sizeof(unsigned long int) * 3, cudaMemcpyDeviceToHost); // copy to host to debug
+    printf("Decrypted user's keys on GPU: test[0] = %u, test[1] = %u, test[2] = %u\n", test[0], test[1], test[2]);
 }
  #endif

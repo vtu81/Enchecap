@@ -32,4 +32,5 @@ int initEnchecap(unsigned long &eid, ECPreg *ecpreg);
  ////////////////////////////////////////////////////////////////////////////////
 void cudaGetPublicKey(unsigned long long *des);
 void cudaGetPublicKeyStrawMan(unsigned long long *cpu_gpu_keys, unsigned long long **gpu_gpu_keys_addr); // FIXME
+void cudaDecryptUserKeys(void* encrypted_user_keys, void *gpu_gpu_keys, void** gpu_user_keys_addr);
 #endif

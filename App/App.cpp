@@ -42,8 +42,7 @@ int SGX_CDECL main(int argc, char *argv[])
         printf("Error while initiating Enchecap!\n");
         return -1;
     }
-    printf("Successfully initialize Enchecap with ecp.eid = %ld!\n", ecpreg.eid);
-    
+    printf("******Enchecap initialized successfully!******\n");
 
     ////////////////////////////////////////////////////////////////////////////////
     // Major code begin
