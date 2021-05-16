@@ -3,13 +3,13 @@
 int threadsPerBlock = 1024;
 int blocksPerGrid;
 float time_encrypt_cpu, time_decrypt_cpu, time_encrypt_gpu, time_decrypt_gpu;
-extern unsigned long int p, q, n, e, d; /* FIXME: Shared variables are bad; 
+extern unsigned long long p, q, n, e, d; /* FIXME: Shared variables are bad; 
 										 * Should be done in a invisible way wrapped inside Enchecap! */
 
 /********************* CUDA Kernel Functions Begin *********************/
-__device__ long long int mod(int base, int exponent, int den) {
+__device__ unsigned long long mod(int base, int exponent, int den) {
 
-	long long int ret;
+	unsigned long long ret;
 	ret = 1;
 	for (int i = 0; i < exponent; i++) {
 		ret *= base;
@@ -19,9 +19,8 @@ __device__ long long int mod(int base, int exponent, int den) {
 
 }
 
-__device__ unsigned int mod_optimized(unsigned int base,unsigned long int exp,unsigned long int modulus){
-	unsigned long p=1;
-	unsigned long tmp=base;
+__device__ unsigned int mod_optimized(unsigned base,unsigned long long exp,unsigned long long modulus){
+	unsigned long long p=1,tmp=base;
 	while(exp){
 		tmp%=modulus;
 		if(exp%2){
@@ -31,10 +30,10 @@ __device__ unsigned int mod_optimized(unsigned int base,unsigned long int exp,un
 		tmp=tmp*tmp;
 		exp/=2;
 	}
-	return p;
+	return (unsigned)p;
 }
 
-__global__ void rsa_old(unsigned int * num,unsigned long int * key,unsigned long int * den,const int len) {
+__global__ void rsa_old(unsigned int * num,unsigned long long * key,unsigned long long * den,const int len) {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	if(i>=len)return;
 	unsigned int temp;
@@ -44,11 +43,11 @@ __global__ void rsa_old(unsigned int * num,unsigned long int * key,unsigned long
 }
 
 __global__ void rsa(unsigned int * num,unsigned long long *gpu_user_keys,const int eORd,const int len) {
-	unsigned long int *key;
-	unsigned long int *den;
-	if(eORd == 1) key = (unsigned long int *)&gpu_user_keys[2];
-	else key = (unsigned long int *)&gpu_user_keys[0];
-	den = (unsigned long int *)&gpu_user_keys[1];
+	unsigned long long *key;
+	unsigned long long *den;
+	if(eORd == 1) key = (unsigned long long *)&gpu_user_keys[2];
+	else key = (unsigned long long *)&gpu_user_keys[0];
+	den = (unsigned long long *)&gpu_user_keys[1];
 
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	if(i>=len)return;
@@ -104,14 +103,14 @@ void decrypt_gpu(void *d_data, int len, void *gpu_user_keys) {
 /* An encrypting function on GPU */
 void encrypt_gpu_old(void *d_data, int len) {
 	cudaEvent_t start_encrypt, stop_encrypt;
-	unsigned long int key = e;
+	unsigned long long key = e;
 	// cudaSetDevice(1);
 	unsigned int *dev_num=(unsigned int *)d_data;
-	unsigned long *dev_key, *dev_den;
-	cudaMalloc((void **) &dev_key, sizeof(long int));
-	cudaMalloc((void **) &dev_den, sizeof(long int));
-	cudaMemcpy(dev_key, &key, sizeof(long int), cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_den, &n, sizeof(long int), cudaMemcpyHostToDevice);
+	unsigned long long *dev_key, *dev_den;
+	cudaMalloc((void **) &dev_key, sizeof(unsigned long long));
+	cudaMalloc((void **) &dev_den, sizeof(unsigned long long));
+	cudaMemcpy(dev_key, &key, sizeof(unsigned long long), cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_den, &n, sizeof(unsigned long long), cudaMemcpyHostToDevice);
 	cudaEventCreate(&start_encrypt);
 	cudaEventCreate(&stop_encrypt);
 	cudaEventRecord(start_encrypt);
@@ -134,14 +133,14 @@ void encrypt_gpu_old(void *d_data, int len) {
 /* An decrypting function on GPU */
 void decrypt_gpu_old(void *d_data, int len) {
 	cudaEvent_t start_decrypt, stop_decrypt;
-	unsigned long int key = d;
+	unsigned long long key = d;
 	// cudaSetDevice(1);
 	unsigned int *dev_num=(unsigned int*)d_data;
-	unsigned long *dev_key, *dev_den;
-	cudaMalloc((void **) &dev_key, sizeof(long int));
-	cudaMalloc((void **) &dev_den, sizeof(long int));
-	cudaMemcpy(dev_key, &key, sizeof(long int), cudaMemcpyHostToDevice);
-	cudaMemcpy(dev_den, &n, sizeof(long int), cudaMemcpyHostToDevice);
+	unsigned long long *dev_key, *dev_den;
+	cudaMalloc((void **) &dev_key, sizeof(unsigned long long));
+	cudaMalloc((void **) &dev_den, sizeof(unsigned long long));
+	cudaMemcpy(dev_key, &key, sizeof(unsigned long long), cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_den, &n, sizeof(unsigned long long), cudaMemcpyHostToDevice);
 
 	cudaEventCreate(&start_decrypt);
 	cudaEventCreate(&stop_decrypt);
@@ -170,7 +169,7 @@ void encrypt_cpu_old(void *h_data, int len) {
 	#endif
 	#pragma omp parallel for
 	for(int i=0;i<len;i++){
-		unsigned long key=e,k=1,exp=mm[i]%n;
+		unsigned long long key=e,k=1,exp=mm[i]%n;
 		while(key){
 			if(key%2){
 				k*=exp;
@@ -193,7 +192,7 @@ void decrypt_cpu_old(void *h_data, int len) {
 	unsigned int *mm=(unsigned int *)h_data,*en=mm;
 	#pragma omp parallel for
 	for(int i=0;i<len;i++) {
-		unsigned long ct = en[i]%n,k = 1,key=d;
+		unsigned long long ct = en[i]%n,k = 1,key=d;
 		while(key){
 			if(key%2==1){
 				k*=ct;
