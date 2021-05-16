@@ -20,22 +20,22 @@ void* enclave_encrypt_user_keys_with_gpu_keys(ECPreg *ecpreg)
 	return ret;
 }
 
-void enclave_encrypt_cpu(unsigned long eid, void* data, int len, void* sgx_user_keys)
+void enclave_encrypt_cpu(unsigned long eid, void* data, int len, void* sgx_user_keys,unsigned *auxBuf)
 {
 	sgx_status_t ret;
 
 	printf("sgx_user_keys: %p\n", sgx_user_keys);
-	ret = ecall_encrypt_cpu(eid, data, len, &sgx_user_keys);
+	ret = ecall_encrypt_cpu(eid, data, len, &sgx_user_keys,auxBuf);
 	if (ret != SGX_SUCCESS) {
         print_error_message(ret);
 	}
 }
 
-void enclave_decrypt_cpu(unsigned long eid, void* data, int len, void* sgx_user_keys)
+void enclave_decrypt_cpu(unsigned long eid, void* data, int len, void* sgx_user_keys,unsigned *auxBuf)
 {
 	sgx_status_t ret;
 
-	ret = ecall_decrypt_cpu(eid, data, len, &sgx_user_keys);
+	ret = ecall_decrypt_cpu(eid, data, len, &sgx_user_keys,auxBuf);
 	if (ret != SGX_SUCCESS) {
         print_error_message(ret);
 	}

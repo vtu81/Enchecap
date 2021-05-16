@@ -41,8 +41,8 @@ extern "C" {
 
 int printf(const char* fmt, ...);
 void ecall_print_helloworld();
-void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys);
-void ecall_decrypt_cpu(void* data, int len, void** sgx_user_keys);
+void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys,unsigned *auxBuf);
+void ecall_decrypt_cpu(void* data, int len, void** sgx_user_keys,unsigned *auxBuf);
 void ecall_get_user_key_straw_man(void** user_keys);
 void test(void** user_keys);
 void ecall_encrypt_user_keys_with_untrusted_key_cpu(void** sgx_user_keys, void* untrusted_keys, void** ret);

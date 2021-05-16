@@ -126,11 +126,11 @@ void initializeCUDA(int argc, char **argv, int &devID, int &iSizeMultiple, sMatr
     int block_size = 32;
 
     matrix_size.uiWA = 3 * block_size * iSizeMultiple;
-    matrix_size.uiHA = 4 * block_size * iSizeMultiple;
+    matrix_size.uiHA = 1 * block_size * iSizeMultiple;
     matrix_size.uiWB = 2 * block_size * iSizeMultiple;
     matrix_size.uiHB = 3 * block_size * iSizeMultiple;
     matrix_size.uiWC = 2 * block_size * iSizeMultiple;
-    matrix_size.uiHC = 4 * block_size * iSizeMultiple;
+    matrix_size.uiHC = 1 * block_size * iSizeMultiple;
 
     printf("MatrixA(%u,%u), MatrixB(%u,%u), MatrixC(%u,%u)\n",
            matrix_size.uiHA, matrix_size.uiWA,

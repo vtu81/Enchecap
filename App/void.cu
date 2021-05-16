@@ -8,7 +8,7 @@
  #include <stdio.h>
  #define POOL 10
 //  #define _DEBUG 1
- #define _DEBUG2 1
+//  #define _DEBUG2 1
  #include <cuda_runtime.h>
  __constant__ unsigned int small_primes[]={3,5,7,9,11,13,17,19,23,29,31,37,41,43,47,53,59};
  __device__ unsigned int tt=1023141123;
@@ -109,13 +109,21 @@
     //  e = 0x10001;
     //  d = 780225773;
     //  n = p * q;
-      unsigned long long lcm;    
-      static const unsigned long long upperBoundMask=(1<<24)-1,lowerBoundMask=1<<16;
+    // p = 74531;
+    // q = 37019;
+    // e = 0x10001;
+    // d = 985968293;
+    unsigned long long lcm;    
+    //   static const unsigned long long upperBoundMask=(1<<24)-1,lowerBoundMask=1<<16;
+    //   static const unsigned long long upperBoundMask=(1<<24)-1,lowerBoundMask=1<<16;
      for(int i=0;i<2;i++){
          #ifdef _DEBUG2
-         tt=i?37415:18809;
+        //  tt=i?37415:18809;
+         tt=i?74532/2:37020/2;
          #else 
-         tt=(clock()&upperBoundMask)|lowerBoundMask;
+         //  tt=(clock()&upperBoundMask)|lowerBoundMask;
+         tt=i?74532/2:37020/2;
+         tt=(clock()%100)*30+tt;
          #endif
          random_p(pointer+i);
          printf("from device :%llu\n",pointer[i]);
@@ -159,6 +167,7 @@ void cudaGetPublicKey(unsigned long long *pk,unsigned long long **gpu_gpu_keys_a
     *gpu_gpu_keys_addr=prime_pointer;
     pk[0]=prime_host[1];
     pk[1]=prime_host[2];
+    pk[2]=prime_host[0];
 }
 
 // FIXME

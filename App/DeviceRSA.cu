@@ -19,7 +19,7 @@ __device__ unsigned long long mod(int base, int exponent, int den) {
 
 }
 
-__device__ unsigned int mod_optimized(unsigned base,unsigned long long exp,unsigned long long modulus){
+__device__ unsigned long long mod_optimized(unsigned long long base,unsigned long long exp,unsigned long long modulus){
 	unsigned long long p=1,tmp=base;
 	while(exp){
 		tmp%=modulus;
@@ -30,7 +30,7 @@ __device__ unsigned int mod_optimized(unsigned base,unsigned long long exp,unsig
 		tmp=tmp*tmp;
 		exp/=2;
 	}
-	return (unsigned)p;
+	return p;
 }
 
 __global__ void rsa_old(unsigned int * num,unsigned long long * key,unsigned long long * den,const int len) {
@@ -42,31 +42,48 @@ __global__ void rsa_old(unsigned int * num,unsigned long long * key,unsigned lon
 	atomicExch(&num[i], temp);
 }
 
-__global__ void rsa(unsigned int * num,unsigned long long *gpu_user_keys,const int eORd,const int len) {
+__global__ void rsaEncrypt(unsigned int * num,unsigned long long *gpu_user_keys,const int len,unsigned int *buf) {
 	unsigned long long *key;
 	unsigned long long *den;
-	if(eORd == 1) key = (unsigned long long *)&gpu_user_keys[2];
-	else key = (unsigned long long *)&gpu_user_keys[0];
+	key = (unsigned long long *)&gpu_user_keys[2];
 	den = (unsigned long long *)&gpu_user_keys[1];
 
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	if(i>=len)return;
-	unsigned int temp;
+	unsigned long long temp;
 	temp = mod_optimized(num[i], *key, *den);
-	//temp = mod_optimized(num[i], *key, *den);
-	atomicExch(&num[i], temp);
+	if(buf)buf[i]=temp>>32;
+	num[i]=(unsigned)temp;
+}
+
+__global__ void rsaDecrypt(unsigned int * num,unsigned long long *gpu_user_keys,const int len,unsigned int *buf) {
+	unsigned long long *key;
+	unsigned long long *den;
+	key = (unsigned long long *)&gpu_user_keys[0];
+	den = (unsigned long long *)&gpu_user_keys[1];
+
+	int i = blockDim.x * blockIdx.x + threadIdx.x;
+	if(i>=len)return;
+	unsigned long long temp,data;
+	if(buf){
+		data=(unsigned long long)num[i]|(buf[i]<<32);
+	}
+	else data=num[i];
+	temp = mod_optimized(data, *key, *den);
+	num[i]=(unsigned)temp;
 }
 
 /********************* CUDA Kernel Functions End *********************/
 /* An encrypting function on GPU */
-void encrypt_gpu(void *d_data, int len, void *gpu_user_keys) {
+/* encrypts unsigned into unsigned long long */
+void encrypt_gpu(void *d_data, int len, void *gpu_user_keys,unsigned int *auxilaryBuffer) {
 	cudaEvent_t start_encrypt, stop_encrypt;
 	unsigned int *dev_num=(unsigned int*)d_data;
 	cudaEventCreate(&start_encrypt);
 	cudaEventCreate(&stop_encrypt);
 	cudaEventRecord(start_encrypt);
 	blocksPerGrid=(len+threadsPerBlock-1)/threadsPerBlock;
-	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)gpu_user_keys,1,len);
+	rsaEncrypt<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)gpu_user_keys,len,auxilaryBuffer);
 	cudaEventRecord(stop_encrypt);
 	cudaEventSynchronize(stop_encrypt);
 	cudaThreadSynchronize();
@@ -77,14 +94,15 @@ void encrypt_gpu(void *d_data, int len, void *gpu_user_keys) {
 
 }
 /* An decrypting function on GPU */
-void decrypt_gpu(void *d_data, int len, void *gpu_user_keys) {
+/* decrypts unsigned long long into unsigned */
+void decrypt_gpu(void *d_data, int len, void *gpu_user_keys,unsigned *auxilaryBuffer) {
 	cudaEvent_t start_decrypt, stop_decrypt;
 	unsigned int *dev_num=(unsigned int*)d_data;
 	cudaEventCreate(&start_decrypt);
 	cudaEventCreate(&stop_decrypt);
 	cudaEventRecord(start_decrypt);
 	blocksPerGrid=(len+threadsPerBlock-1)/threadsPerBlock;
-	rsa<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)gpu_user_keys,0,len);
+	rsaDecrypt<<<blocksPerGrid, threadsPerBlock>>>(dev_num,(unsigned long long *)gpu_user_keys,len,auxilaryBuffer);
 	cudaEventRecord(stop_decrypt);
 	cudaEventSynchronize(stop_decrypt);
 	cudaThreadSynchronize();

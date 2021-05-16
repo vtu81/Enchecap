@@ -36,7 +36,7 @@ void ecall_print_helloworld()
  * Usage:
  *   should only be used for encrypting **user's keys** with **GPU-generated public key** from `ECPreg reg.userGpuPublicKey`.
  */
-void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys)
+void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys,unsigned *auxBuf)
 {
 	printf("@ENCLAVE: \"CPU encrypting in enclave...");
 	printf("** %u ** -> ", ((unsigned int*)data)[1]);
@@ -67,6 +67,7 @@ void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys)
 			exp %= n;
 		}
 		en[i] = k;
+		if(auxBuf)auxBuf[i]=k>>32;
 	}
 	// clock_gettime(CLOCK_MONOTONIC,&__end);
 	// printf("CPU Encryption in enclave:%lf\n",((double)__end.tv_sec - __begin.tv_sec + 0.000000001 * (__end.tv_nsec - __begin.tv_nsec)));
@@ -81,7 +82,7 @@ void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys)
  * Usage:
  *   Used for testing; not necessary in practical cases.
  */
-void ecall_decrypt_cpu(void* data, int len, void** sgx_user_keys)
+void ecall_decrypt_cpu(void* data, int len, void** sgx_user_keys,unsigned *auxBuf)
 {
 	printf("@ENCLAVE: \"CPU decrypting in enclave...");
 	printf("** %u ** -> ", ((unsigned int*)data)[1]);
@@ -98,7 +99,9 @@ void ecall_decrypt_cpu(void* data, int len, void** sgx_user_keys)
 	unsigned int *mm=(unsigned int *)data,*en=mm;
 	// #pragma omp parallel for
 	for(int i=0;i<len;i++) {
-		unsigned long long ct = en[i]%n,k = 1,key=d;
+		unsigned long long ct ,k = 1,key=d;
+		if(auxBuf)ct= en[i]|auxBuf[i]<<32;
+		else ct=en[i];
 		while(key){
 			if(key%2==1){
 				k*=ct;
@@ -207,33 +210,39 @@ sgx_status_t unseal(sgx_sealed_data_t* sealed_data, size_t sealed_size, uint8_t*
  * 
  * Usage:
  *   should only be used for encrypting **user's keys** with **GPU-generated public key** from `ECPreg reg.userGpuPublicKey`.
+ * Notice:
+ * 	 the encrypted message is twice the length of the plain text
  */
 void ecall_encrypt_user_keys_with_untrusted_key_cpu(void** sgx_user_keys, void* untrusted_keys, void** ret)
 {
+	// the encrypted message
 	//unseal user's keys to `ptrr`
 	unsigned long long  ptrr[3];
 	unseal((sgx_sealed_data_t*)*sgx_user_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long long ));
 	
 	//save the user's keys in `data`, waiting for encryption
 	void* data = malloc(3 * sizeof(unsigned long long ));
-	int len = 3 * sizeof(unsigned long long ) / sizeof(int);
+	int len = 3;
 	((unsigned long long *)data)[0] = ptrr[0];
 	((unsigned long long *)data)[1] = ptrr[1];
 	((unsigned long long *)data)[2] = ptrr[2];
 
-	printf("@ENCLAVE: \"before encryption, user's keys look like this\tdata[0] = %u, data[1] = %u, data[2] = %u\"\n", ((unsigned long long *)data)[0], ((unsigned long long *)data)[1], ((unsigned long long *)data)[2]);
+	printf("@ENCLAVE: \"before encryption, user's keys look like this\tdata[0] = %llu, data[1] = %llu, data[2] = %llu\"\n", ((unsigned long long *)data)[0], ((unsigned long long *)data)[1], ((unsigned long long *)data)[2]);
 
 	unsigned long long  n, e, d;
 	n = ((unsigned long long*)untrusted_keys)[0];
 	e = ((unsigned long long*)untrusted_keys)[1];
-	unsigned int *mm = (unsigned int *)data,*en = mm;
-	printf("len:%d\n",len);
+	// d = ((unsigned long long*)untrusted_keys)[2];
+	d=0;
+	// unsigned int *mm = (unsigned int *)data;
+	unsigned long long *en=(unsigned long long *)data;
+	printf("len:%d, n,e,d=%llu,%llu,%llu\n",len,n,e,d);
 	unsigned long long key,k,exp;
 	for(int i = 0; i < len; i++){
 		key = e;
 		k = 1;
-		exp = (unsigned long long)mm[i];
-		printf("%llu,%llu,%llu\n",key,k,exp);
+		exp = en[i];
+		// printf("%llu,%llu,%llu\n",key,k,exp);
 		while(key){
 			if(key % 2){
 				k *= exp;
@@ -251,7 +260,6 @@ void ecall_encrypt_user_keys_with_untrusted_key_cpu(void** sgx_user_keys, void* 
 	*ret = data;
 
 	// Debug only
-	// d = 107433065;
 	// #pragma omp parallel for
 	// for(int i=0;i<len;i++) {
 	// 	unsigned long long ct = en[i]%n,k = 1,key=d;
@@ -264,7 +272,8 @@ void ecall_encrypt_user_keys_with_untrusted_key_cpu(void** sgx_user_keys, void* 
 	// 		ct*=ct;
 	// 		ct%=n;
 	// 	}
-	// 	mm[i] = (unsigned int)k;
+	// 	mm[i] = k;
+	// 	printf("mm[%d]=%u\n",i,mm[i]);
 	// }
 	// printf("@ENCLAVE: \"after decryption, user's keys look like this\tdata[0] = %u, data[1] = %u, data[2] = %u\"\n", ((unsigned long long *)data)[0], ((unsigned long long *)data)[1], ((unsigned long long *)data)[2]);
 }
