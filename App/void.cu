@@ -6,18 +6,16 @@
  * ***************************************************************/
  #include <stdlib.h>
  #include <stdio.h>
- #include "DeviceRSA.h"
  #define POOL 10
- // #define _DEBUG 1
- // FIXME: margin
+//  #define _DEBUG 1
+ #define _DEBUG2 1
  #include <cuda_runtime.h>
- static unsigned int small_primes_host[]={3,5,7,9,11,13,17,19,23,29,31,37,41,43,47,53,59};
  __constant__ unsigned int small_primes[]={3,5,7,9,11,13,17,19,23,29,31,37,41,43,47,53,59};
- __device__ int tt=1023141123;
+ __device__ unsigned int tt=1023141123;
  __constant__ int * _ret;
  __constant__ unsigned long long * prime_pointer;
  __constant__ unsigned long long * gpu_user_keys;
- #define nprimes (sizeof(small_primes_host)/sizeof(unsigned))
+ #define nprimes (sizeof(small_primes)/sizeof(unsigned))
  __device__ void prime(unsigned long long x,int *ret){
      // dirty implementation
      for(int i=59;1;i+=2){
@@ -56,7 +54,7 @@
          t=candidates[cnt-1]+2;
      }
      while(1);
-     {*ret=-1;return;}
+     {*ret=0;return;}
  }
  __device__ void swap(long long *a,long long *b){
      long long t;
@@ -84,10 +82,14 @@
          swap((long long *)&a,(long long *)&b);
          for(int i=0;i<2;i++)swap(&k[0][i],&k[1][i]);
      }
-     printf("%d\n",a);
+     printf("%llu\n",a);
      printf("coeffs: %lld %lld \n",k[0][0],k[0][1]);
+     while(k[0][1]<0){
+        k[0][1]+=arc[0];
+        k[0][0]-=arc[1];
+     }
      printf("%lld\n",k[0][0]*arc[0]+k[0][1]*arc[1]);
-     *ret=(unsigned long long)k[0][0];
+     *ret=(unsigned long long)k[0][1];
  }
  __global__ void RSA_key_generator(unsigned long long *pointer){
      // // tt=1023141123;
@@ -102,60 +104,62 @@
      // gcd(pointer[0],pointer[1],pointer+2);
      // printf("%llu\n",pointer[2]);
      // // seed=time()
- 
-     unsigned long long p[2];    
+    //  p = 74831;
+    //  q = 37619;
+    //  e = 0x10001;
+    //  d = 780225773;
+    //  n = p * q;
+      unsigned long long lcm;    
+      static const unsigned long long upperBoundMask=(1<<16)-1,lowerBoundMask=1<<14;
      for(int i=0;i<2;i++){
-         tt=clock();
+         #ifdef _DEBUG2
+         tt=i?37415:18809;
+         #else 
+         tt=(clock()&upperBoundMask)|lowerBoundMask;
+         #endif
          random_p(pointer+i);
-         p[i]=pointer[i];
          printf("from device :%llu\n",pointer[i]);
      }
-     if(p[0]>p[1])
-         tt=p[0]/2+1;
-     else tt=p[1]/2+1;
-     pointer[1]=(p[0]-1)*(p[1]-1);
-     random_p(pointer);
-     // pointer[0] is now relatively prime to (p-1)(q-1)
-     gcd(pointer[0],pointer[1],pointer+2);
+     if(pointer[0]>pointer[1])
+         tt=pointer[0]/2+1;
+     else tt=pointer[1]/2+1;
+     lcm=(pointer[0]-1)*(pointer[1]-1);
+     pointer[1]=pointer[0]*pointer[1];          // pointer[1]=N
+     random_p(pointer+2);
+     printf("from device :e=%llu\n",pointer[2]);// pointer[2] is now relatively prime to (p-1)(q-1)
+     gcd(lcm,pointer[2],pointer);               // pointer[0]=d
+    // e,N is the public key 
+    // d,N is the private key 
  }
- #ifdef _DEBUG
- int main(void){
-     unsigned long long prime_host;
-     // int64_t *pointer=NULL;
-     int *ret_device;
-     cudaMalloc(&ret_device,sizeof(int));
-     cudaMalloc(&prime_pointer,3*sizeof(unsigned long long));
-     cudaMemcpyToSymbol(_ret,&ret_device,sizeof(ret_device));
-     RSA_key_generator<<<1,1>>>(prime_pointer);
-     cudaDeviceSynchronize();
-     // cudaMemcpyFromSymbol(&prime_host,prime_pointer,sizeof(prime_host));
-     cudaMemcpy(&prime_host,prime_pointer,sizeof(prime_host),cudaMemcpyDeviceToHost);
-     printf("from host :%llu",prime_host);
-     return 0;
- }
- #else 
+ #ifndef _DEBUG
+ #include "DeviceRSA.h"
  #include "DeviceApp.h"
- ////////////////////////////////////////////////////////////////////////////////
- //! init a transfer of GPU RSA public key
- //! pk is an array containing 3 64-bit unsigned int d, n and e accordingly
- //! whereas encrypt function being f(m)= m^d mod n, encrypt function g(m)=m^e mod n
- //! user should apply for mem space beforehand
- //! @param pk         des
- ////////////////////////////////////////////////////////////////////////////////
- void cudaGetPublicKey(unsigned long long *pk){
-     unsigned long long prime_host[3];
-     // int64_t *pointer=NULL;
-     int *ret_device;
-     cudaMalloc(&ret_device,sizeof(int));
-     cudaMalloc(&prime_pointer,3*sizeof(unsigned long long));
-     cudaMemcpyToSymbol(_ret,&ret_device,sizeof(ret_device));
-     RSA_key_generator<<<1,1>>>(prime_pointer);
-     cudaDeviceSynchronize();
-     // cudaMemcpyFromSymbol(&prime_host,prime_pointer,sizeof(prime_host));
-     cudaMemcpy(&prime_host,prime_pointer,sizeof(prime_host),cudaMemcpyDeviceToHost);
-     printf("from host :%llu %llu %lld",prime_host[0],prime_host[1],prime_host[2]);
-     for(int i=0;i<3;i++)pk[i]=prime_host[i];
- }
+ #endif
+////////////////////////////////////////////////////////////////////////////////
+//! init a transfer of GPU RSA public key
+//! pk is an array containing 3 64-bit unsigned int d, n and e accordingly
+//! whereas encrypt function being f(m)= m^d mod n, encrypt function g(m)=m^e mod n
+//! user should apply for mem space beforehand
+//! @param pk         des
+////////////////////////////////////////////////////////////////////////////////
+void cudaGetPublicKey(unsigned long long *pk,unsigned long long **gpu_gpu_keys_addr){
+    unsigned long long prime_host[3];
+    // int64_t *pointer=NULL;
+    int *ret_device;
+    cudaMalloc(&ret_device,sizeof(int));
+    cudaMalloc(&prime_pointer,3*sizeof(unsigned long long));
+    cudaMemcpyToSymbol(_ret,&ret_device,sizeof(ret_device));
+    RSA_key_generator<<<1,1>>>(prime_pointer);
+    cudaDeviceSynchronize();
+    // cudaMemcpyFromSymbol(&prime_host,prime_pointer,sizeof(prime_host));
+    cudaMemcpy(&prime_host,prime_pointer,sizeof(prime_host),cudaMemcpyDeviceToHost);
+    printf("from host :%llu %llu %llu\n",prime_host[0],prime_host[1],prime_host[2]);
+    
+    //  fit the  interface
+    *gpu_gpu_keys_addr=prime_pointer;
+    pk[0]=prime_host[1];
+    pk[1]=prime_host[2];
+}
 
 // FIXME
 void cudaGetPublicKeyStrawMan(unsigned long long *cpu_gpu_keys, unsigned long long **gpu_gpu_keys_addr){
@@ -171,18 +175,18 @@ void cudaGetPublicKeyStrawMan(unsigned long long *cpu_gpu_keys, unsigned long lo
     // n = p * q;
     
     // This RSA pair doesn't work :(
-    // p = 61813;
-    // q = 29347;
-    // e = 0x10001;
-    // d = 471467537;
-    // n = p * q;
+    p = 61813;
+    q = 29347;
+    e = 0x10001;
+    d = 471467537;
+    n = p * q;
 
     // This RSA pair works :)
-    p = 74831;
-    q = 37619;
-    e = 0x10001;
-    d = 780225773;
-    n = p * q;
+    // p = 74831;
+    // q = 37619;
+    // e = 0x10001;
+    // d = 780225773;
+    // n = p * q;
 
     unsigned long long prime_host[3] = {d, n, e};
 
@@ -200,6 +204,7 @@ void cudaGetPublicKeyStrawMan(unsigned long long *cpu_gpu_keys, unsigned long lo
     *gpu_gpu_keys_addr = prime_pointer;
     // printf("prime_pointer: %p\t*gpu_gpu_keys_addr: %p\n", prime_pointer, *gpu_gpu_keys_addr);
 }
+#ifndef _DEBUG
 
 void cudaDecryptUserKeys(void* encrypted_user_keys, void *gpu_gpu_keys, void** gpu_user_keys_addr)
 {
@@ -212,4 +217,16 @@ void cudaDecryptUserKeys(void* encrypted_user_keys, void *gpu_gpu_keys, void** g
     cudaMemcpy(test, gpu_user_keys, sizeof(unsigned long int) * 3, cudaMemcpyDeviceToHost); // copy to host to debug
     printf("Decrypted user's keys on GPU: test[0] = %u, test[1] = %u, test[2] = %u\n", test[0], test[1], test[2]);
 }
- #endif
+#else
+int main(void){
+    unsigned long long cpu_gpu_keys[2];
+    unsigned long long *gpu_gpu_keys;
+    cudaGetPublicKey(cpu_gpu_keys,&gpu_gpu_keys);
+    printf("\nmain_real:");
+    for(int i=0;i<2;i++)printf("%llu ",cpu_gpu_keys[i]);
+    // cudaGetPublicKeyStrawMan(cpu_gpu_keys,&gpu_gpu_keys);
+    // for(int i=0;i<2;i++)printf("%llu ",cpu_gpu_keys[i]);
+    
+    return 0;
+}
+#endif

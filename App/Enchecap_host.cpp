@@ -48,9 +48,9 @@ int initEnchecap(unsigned long &eid, ECPreg *ecpreg)
     /* Initialize GPU key */
     unsigned long long *cpu_gpu_keys;
     unsigned long long *gpu_gpu_keys;
-    cpu_gpu_keys=(unsigned long long *)malloc(sizeof(unsigned long long)*2);
-    // cudaGetPublicKey(cpu_gpu_keys);
-    cudaGetPublicKeyStrawMan(cpu_gpu_keys, &gpu_gpu_keys); // FIXME: Just a straw man; please replace it with the real one without changing the interface.
+    cpu_gpu_keys=(unsigned long long *)malloc(sizeof(unsigned long long)*3);
+    cudaGetPublicKey(cpu_gpu_keys,&gpu_gpu_keys);
+    // cudaGetPublicKeyStrawMan(cpu_gpu_keys, &gpu_gpu_keys); // FIXME: Just a straw man; please replace it with the real one without changing the interface.
     ecpreg->cpu_gpu_keys = (void*)cpu_gpu_keys;
     ecpreg->gpu_gpu_keys = (void*)gpu_gpu_keys;
     printf("-----GPU's keys initialized successfully!-----\n");

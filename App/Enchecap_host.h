@@ -25,12 +25,13 @@
 int initEnchecap(unsigned long &eid, ECPreg *ecpreg);
  ////////////////////////////////////////////////////////////////////////////////
  //! init a transfer of GPU RSA public key
- //! pk is an array containing 3 64-bit unsigned int d, n and e accordingly
+ //! pk is an array containing 3 64-bit unsigned int e, n and d accordingly
  //! whereas encrypt function being f(m)= m^d mod n, encrypt function g(m)=m^e mod n
+ //! (e,n) is the public key, (d,n) is the private key
  //! user should apply for mem space beforehand
  //! @param des        destination of the key pair copy
  ////////////////////////////////////////////////////////////////////////////////
-void cudaGetPublicKey(unsigned long long *des);
+void cudaGetPublicKey(unsigned long long *des,unsigned long long **gpu_gpu_keys_addr);
 void cudaGetPublicKeyStrawMan(unsigned long long *cpu_gpu_keys, unsigned long long **gpu_gpu_keys_addr); // FIXME
 void cudaDecryptUserKeys(void* encrypted_user_keys, void *gpu_gpu_keys, void** gpu_user_keys_addr);
 #endif
