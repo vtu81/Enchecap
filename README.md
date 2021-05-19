@@ -2,7 +2,11 @@
 
 An (onbuilding) **enc**rypted (**enc**lave-based) **he**terogeneous **ca**lculation **p**rotocol based on Nvidia CUDA and Intel SGX, designed and implemented by [Tinghao Xie](http://vtu.life), [Haoyang Shi](https://github.com/Luke-Skycrawler), [Zihang Li](https://github.com/zjulzhhh).
 
+Enchecap illustration:
 ![demo](./assets/demo.png)
+
+Enchecap illustration (with **protected** and **trusted** regions):
+![demo](./assets/demo_box.png)
 
 ---
 
@@ -49,19 +53,21 @@ Run with:
 ## TODO
 
 ### Phase I: Initialization
-- [x] Create an enclave
-- [x] Get and user's keys (notice that the user's keys are now simply welded in the code)
-- [ ] GPU generate its own keys (there are bugs with the function, now replaced with a straw man)
-- [x] Key exchange
+- [x] 1. Create an enclave
+- [ ] 2. Enclave generate its own keys
+- [ ] 3. Key exchange between User and Enclave
+- [ ] 4. GPU generate its own keys (there are bugs with the function, now replaced with a straw man)
+- [x] 5. Key exchange between Enclave and GPU
 
 ### Phase II: Calculation
-- [x] En/Decrypt in enclave (with unsealed keys in enclave memory only)
-- [x] En/Decrypt on GPU (with keys in device memory only)
+- [x] 6. En/Decrypt in enclave (with unsealed keys in enclave memory only)
+- [x] 7. En/Decrypt on GPU (with keys in device memory only)
 
 ### Future Work
 - [ ] Test the performance
-- [ ] Directly injecting user's keys into the enclave
-- [ ] The current RSA en/decrypt algorithm is extremely naive! (further works include regrouping, big number support...)
+- [ ] The user's keys are now simply welded in the code, need to finish TODO list 2 and 3
+- [ ] The GPU's keys are now simply welded in the code, need to finish TODO list 4
+- [ ] The current RSA en/decrypt algorithm is yet extremely naive! (further works include regrouping, big number supports...)
 - [ ] Remote attestation with Intel SGX
-- [ ] Intergration with real industrial work with CUDA
-- [ ] Find ways to protect data on GPU side
+- [ ] Intergration with real industrial work based on CUDA
+- [ ] Find ways to protect data on GPU side (hardware)
