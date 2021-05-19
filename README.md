@@ -54,20 +54,19 @@ Run with:
 
 ### Phase I: Initialization
 - [x] 1. Create an enclave
-- [ ] 2. Enclave generate its own keys
-- [ ] 3. Key exchange between User and Enclave
-- [ ] 4. GPU generate its own keys (there are bugs with the function, now replaced with a straw man)
-- [x] 5. Key exchange between Enclave and GPU
+- [ ] 2. User broadcasts his/her public key to host & device
+- [ ] 3. Enclave generates its own keys, then broadcasts its public key to user & device
+- [ ] 4. GPU generates its own keys, then broadcasts its public key to host & user
 
 ### Phase II: Calculation
-- [x] 6. En/Decrypt in enclave (with unsealed keys in enclave memory only)
-- [x] 7. En/Decrypt on GPU (with keys in device memory only)
+- [x] 6. En/Decrypt in enclave (Enclave's private key is only unsealed and visible in enclave only)
+- [x] 7. En/Decrypt on GPU (GPU's private key is always in device memory)
 
 ### Future Work
 - [ ] Test the performance
-- [ ] The user's keys are now simply welded in the code, need to finish TODO list 2 and 3
-- [ ] The GPU's keys are now simply welded in the code, need to finish TODO list 4
+- [ ] The user's keys are now simply welded in the code, need FIX
+- [ ] The GPU's keys are now simply welded in the code, need FIX
 - [ ] The current RSA en/decrypt algorithm is yet extremely naive! (further works include regrouping, big number supports...)
 - [ ] Remote attestation with Intel SGX
 - [ ] Intergration with real industrial work based on CUDA
-- [ ] Find ways to protect data on GPU side (hardware)
+- [ ] Intergration with a trusted GPU (far from our reach now)
