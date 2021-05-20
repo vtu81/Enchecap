@@ -52,21 +52,25 @@ Run with:
 
 ## TODO
 
+**Notice**: We have not implemented the user-server code into the library/sample now, since it's similar to the host-device part of our protocol. For now, we just implement the host-device part. In this repository, we show how to wrap up the `cudaMemcpy()` into `secureCudaMemcpy()`, doing implicit en/decryption for handy secure deployment.
+
 ### Phase I: Initialization
 - [x] 1. Create an enclave
-- [ ] 2. User broadcasts his/her public key to host & device
-- [ ] 3. Enclave generates its own keys, then broadcasts its public key to user & device
-- [ ] 4. GPU generates its own keys, then broadcasts its public key to host & user
+- [x] 3. Enclave generates its own keys (generation is yet an empty shell now), then broadcasts its public key to user & device
+- [x] 4. GPU generates its own keys (generation is yet an empty shell now), then broadcasts its public key to host & user
 
 ### Phase II: Calculation
-- [x] 6. En/Decrypt in enclave (Enclave's private key is only unsealed and visible in enclave only)
-- [x] 7. En/Decrypt on GPU (GPU's private key is always in device memory)
+- [x] 6. En/Decrypt in enclave (decrypt with SGX's private key, encrypt with GPU's public key)
+- [x] 7. En/Decrypt on GPU (decrypt with GPU's private key, encrypt with SGX's public key)
 
 ### Future Work
 - [ ] Test the performance
-- [ ] The user's keys are now simply welded in the code, need FIX
-- [ ] The GPU's keys are now simply welded in the code, need FIX
+- [ ] The GPU's and SGX's keys are both simply welded in the code currently, need FIX
 - [ ] The current RSA en/decrypt algorithm is yet extremely naive! (further works include regrouping, big number supports...)
-- [ ] Remote attestation with Intel SGX
+- [ ] Add the user's part into the sample, including
+    * Remote attestation with Intel SGX
+    * Broadcast his/her public key to the enclave and GPU, meanwhile record their public keys
+    * Send encrypted data to the server
+    * Receive encrypted results from the server
 - [ ] Intergration with real industrial work based on CUDA
-- [ ] Intergration with a trusted GPU (far from our reach now)
+- [ ] Intergration with a real trusted GPU (far from our reach now)
