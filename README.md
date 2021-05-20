@@ -55,13 +55,13 @@ Run with:
 **Notice**: We have not implemented the user-server code into the library/sample now, since it's similar to the host-device part of our protocol. For now, we just implement the host-device part. In this repository, we show how to wrap up the `cudaMemcpy()` into `secureCudaMemcpy()`, doing implicit en/decryption for handy secure deployment.
 
 ### Phase I: Initialization
-- [x] 1. Create an enclave
-- [x] 3. Enclave generates its own keys (generation is yet an empty shell now), then broadcasts its public key to user & device
-- [x] 4. GPU generates its own keys (generation is yet an empty shell now), then broadcasts its public key to host & user
+- [x] Create an enclave
+- [x] Enclave generates its own keys (generation is yet an empty shell now), then broadcasts its public key to user & device
+- [x] GPU generates its own keys (generation is yet an empty shell now), then broadcasts its public key to host & user
 
 ### Phase II: Calculation
-- [x] 6. En/Decrypt in enclave (decrypt with SGX's private key, encrypt with GPU's public key)
-- [x] 7. En/Decrypt on GPU (decrypt with GPU's private key, encrypt with SGX's public key)
+- [x] En/Decrypt in enclave (decrypt with SGX's private key, encrypt with GPU's public key)
+- [x] En/Decrypt on GPU (decrypt with GPU's private key, encrypt with SGX's public key)
 
 ### Future Work
 - [ ] Test the performance
