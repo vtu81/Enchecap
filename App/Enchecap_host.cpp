@@ -41,25 +41,28 @@ int initEnchecap(unsigned long &eid, ECPreg *ecpreg)
     printf("eid = %lu\n", eid);
     printf("---------Create enclave successfully!---------\n");
 
-    /* Fetch the user's key and store them in the enclave */
-    enclave_get_user_keys(ecpreg);
+    /* Initialize SGX key */
+    enclave_generate_keys(ecpreg);
     printf("----Get and seal user's keys successfully!----\n");
 
     /* Initialize GPU key */
-    unsigned long long *cpu_gpu_keys;
-    unsigned long long *gpu_gpu_keys;
-    cpu_gpu_keys=(unsigned long long *)malloc(sizeof(unsigned long long)*2);
-    // cudaGetPublicKey(cpu_gpu_keys);
-    cudaGetPublicKeyStrawMan(cpu_gpu_keys, &gpu_gpu_keys); // FIXME: Just a straw man; please replace it with the real one without changing the interface.
-    ecpreg->cpu_gpu_keys = (void*)cpu_gpu_keys;
-    ecpreg->gpu_gpu_keys = (void*)gpu_gpu_keys;
+    unsigned long long *shared_gpu_pub_key_host;
+    unsigned long long *gpu_keys;
+    shared_gpu_pub_key_host=(unsigned long long *)malloc(sizeof(unsigned long long)*2);
+    // cudaGetPublicKey(shared_gpu_pub_key_host);
+    cudaGetPublicKeyStrawMan(shared_gpu_pub_key_host, &gpu_keys); // FIXME: Just a straw man; please replace it with the real one without changing the interface.
+    ecpreg->shared_gpu_pub_key_host = (void*)shared_gpu_pub_key_host;
+    ecpreg->gpu_keys = (void*)gpu_keys;
+    printf("ecpreg->gpu_keys: %p\n", ecpreg->gpu_keys);
+	printf("ecpreg->shared_gpu_pub_key_host: %u %u\n", ((unsigned long int*)(ecpreg->shared_gpu_pub_key_host))[0], ((unsigned long int*)(ecpreg->shared_gpu_pub_key_host))[1]);
     printf("-----GPU's keys initialized successfully!-----\n");
 
     /* Key exchange */
-    void* encrypted_user_keys = enclave_encrypt_user_keys_with_gpu_keys(ecpreg); // encrypt the user's keys with 
+    cudaGetSGXKey(ecpreg->shared_sgx_pub_key_host, &ecpreg->shared_sgx_pub_key_device);
+    // void* encrypted_user_keys = enclave_encrypt_user_keys_with_gpu_keys(ecpreg); // encrypt the user's keys with 
                                                                                  // GPU's public keys (n, e) at 
                                                                                  // `ecpreg->cpu_gpu_keys`
-    cudaDecryptUserKeys(encrypted_user_keys, ecpreg->gpu_gpu_keys, &ecpreg->gpu_user_keys); // GPU decrypts the `encrypted_user_keys` with its (d, n)
+    // cudaDecryptUserKeys(encrypted_user_keys, ecpreg->gpu_gpu_keys, &ecpreg->gpu_user_keys); // GPU decrypts the `encrypted_user_keys` with its (d, n)
                                                                                             // and hold the decrypted keys in device memory (as a 
                                                                                             // global pointer), whose address is recorded at `ecpreg->gpu_user_keys`
     printf("----------Key exchange successfully!----------\n");

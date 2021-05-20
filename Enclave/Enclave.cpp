@@ -36,17 +36,15 @@ void ecall_print_helloworld()
  * Usage:
  *   should only be used for encrypting **user's keys** with **GPU-generated public key** from `ECPreg reg.userGpuPublicKey`.
  */
-void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys)
+void ecall_encrypt_cpu(void* data, int len, void** en_keys)
 {
 	printf("@ENCLAVE: \"CPU encrypting in enclave...");
 	printf("** %u ** -> ", ((unsigned int*)data)[1]);
 	
-	unsigned long int ptrr[3];
-	unseal((sgx_sealed_data_t*)*sgx_user_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long int));
-
     unsigned long int n, e;
-	n = ptrr[1];
-	e = ptrr[2];
+	n = ((unsigned long int*)*en_keys)[0];
+	e = ((unsigned long int*)*en_keys)[1];
+	printf("n = %u, e = %u\n", n, e);
 
     // struct timespec __begin,__end;
     // clock_gettime(CLOCK_MONOTONIC, &__begin);
@@ -81,13 +79,13 @@ void ecall_encrypt_cpu(void* data, int len, void** sgx_user_keys)
  * Usage:
  *   Used for testing; not necessary in practical cases.
  */
-void ecall_decrypt_cpu(void* data, int len, void** sgx_user_keys)
+void ecall_decrypt_cpu(void* data, int len, void** sgx_keys)
 {
 	printf("@ENCLAVE: \"CPU decrypting in enclave...");
 	printf("** %u ** -> ", ((unsigned int*)data)[1]);
 
 	unsigned long int ptrr[3];
-	unseal((sgx_sealed_data_t*)*sgx_user_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long int));
+	unseal((sgx_sealed_data_t*)*sgx_keys, sizeof(sgx_sealed_data_t) + sizeof(ptrr), (uint8_t*)&ptrr, 3*sizeof(unsigned long int));
 
     unsigned long int n, d;
 	n = ptrr[1];
@@ -117,10 +115,11 @@ void ecall_decrypt_cpu(void* data, int len, void** sgx_user_keys)
 }
 
 /**
- * ecall_get_user_key_straw_man():
- *   Get user's keys directly and let `*user_keys` = the sealed keys' address
+ * ecall_generate_keys_straw_man():
+ *   Generate and seal SGX's keys.
+ *   Let `*sgx_keys_addr` = the sealed keys' address, and `sgx_pub_key_addr` = the unsealed pub key (n, e) address (in host memory)
  */
-void ecall_get_user_key_straw_man(void** user_keys)
+void ecall_generate_keys_straw_man(void** sgx_keys_addr, void** sgx_pub_key_addr)
 {
 	unsigned long int p, q, n, e, d;
 	p = 74531;
@@ -136,7 +135,13 @@ void ecall_get_user_key_straw_man(void** user_keys)
 	uint8_t* sealed_data = (uint8_t*)malloc(sealed_size);
 	seal((uint8_t*)&ptr, 3*sizeof(unsigned long int), (sgx_sealed_data_t*)sealed_data, sealed_size);
 	printf("sealed_data address: %p\n", sealed_data);
-	*user_keys = sealed_data;
+	*sgx_keys_addr = sealed_data;
+	printf("sizeof(sealed_data) = %d\n",sizeof(sealed_data));
+
+	unsigned long int* pub_key_addr = (unsigned long int*)malloc(sizeof(unsigned long int) * 2);
+	pub_key_addr[0] = n;
+	pub_key_addr[1] = e;
+	*sgx_pub_key_addr = pub_key_addr;
 
 	printf("@ENCLAVE: Get and seal user keys successfully!\n");
 }

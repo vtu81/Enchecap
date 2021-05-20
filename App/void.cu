@@ -17,6 +17,7 @@
  __constant__ int * _ret;
  __constant__ unsigned long long * prime_pointer;
  __constant__ unsigned long long * gpu_user_keys;
+ __constant__ unsigned long long * shared_sgx_pub_key_device;
  #define nprimes (sizeof(small_primes_host)/sizeof(unsigned))
  __device__ void prime(unsigned long long x,int *ret){
      // dirty implementation
@@ -201,7 +202,7 @@ void cudaGetPublicKeyStrawMan(unsigned long long *cpu_gpu_keys, unsigned long lo
     // printf("prime_pointer: %p\t*gpu_gpu_keys_addr: %p\n", prime_pointer, *gpu_gpu_keys_addr);
 }
 
-void cudaDecryptUserKeys(void* encrypted_user_keys, void *gpu_gpu_keys, void** gpu_user_keys_addr)
+void cudaDecryptUserKeys(void* encrypted_user_keys, void* gpu_gpu_keys, void** gpu_user_keys_addr)
 {
     cudaMalloc(&gpu_user_keys, 3*sizeof(unsigned long int)); // malloc for global address `gpu_user_keys`
     cudaMemcpy(gpu_user_keys, encrypted_user_keys, sizeof(unsigned long int) * 3, cudaMemcpyHostToDevice); // copy encrypted user keys to device
@@ -211,5 +212,17 @@ void cudaDecryptUserKeys(void* encrypted_user_keys, void *gpu_gpu_keys, void** g
     unsigned long int test[3];
     cudaMemcpy(test, gpu_user_keys, sizeof(unsigned long int) * 3, cudaMemcpyDeviceToHost); // copy to host to debug
     printf("Decrypted user's keys on GPU: test[0] = %u, test[1] = %u, test[2] = %u\n", test[0], test[1], test[2]);
+}
+
+void cudaGetSGXKey(void* shared_sgx_pub_key_host, void** shared_sgx_pub_key_device_addr)
+{
+    cudaMalloc(&shared_sgx_pub_key_device, 3*sizeof(unsigned long int)); // malloc for global address `shared_sgx_pub_key_device`
+    cudaMemcpy(shared_sgx_pub_key_device, shared_sgx_pub_key_host, sizeof(unsigned long int) * 2, cudaMemcpyHostToDevice); // copy encrypted user keys to device
+    
+    *shared_sgx_pub_key_device_addr = shared_sgx_pub_key_device;
+
+    unsigned long int test[3];
+    cudaMemcpy(test, shared_sgx_pub_key_device, sizeof(unsigned long int) * 2, cudaMemcpyDeviceToHost); // copy to host to debug
+    printf("SGX's keys on GPU: test[0] = %u, test[1] = %u\n", test[0], test[1]);
 }
  #endif
