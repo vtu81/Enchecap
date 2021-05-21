@@ -286,7 +286,7 @@ ALL_LDFLAGS += $(addprefix -Xlinker ,$(LDFLAGS))
 ALL_LDFLAGS += $(addprefix -Xlinker ,$(EXTRA_LDFLAGS))
 
 # Common includes and paths for CUDA
-INCLUDES  := -I/pan1/sgx/NVIDIA_CUDA-11.1_Samples/common/inc
+INCLUDES  := -I./Include/inc -I$(CUDA_PATH)/targets/x86_64-linux/include
 LIBRARIES :=
 
 ################################################################################
