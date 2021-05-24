@@ -166,6 +166,7 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size, E
     e = 0x10001;
 	d = 985968293;
 	n = p * q;
+    struct timespec begin,end;
     cudaDeviceProp deviceProp;
 
     checkCudaErrors(cudaGetDeviceProperties(&deviceProp, devID));
@@ -225,9 +226,9 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size, E
     //     decrypt_gpu(d_A,mem_size_A/sizeof(int));
     //     decrypt_gpu(d_B,mem_size_B/sizeof(int));
     // }
-
-    checkCudaErrors(secureCudaMemcpy(ecpreg, d_A, h_A, mem_size_A, cudaMemcpyHostToDevice, encrypt, encrypt));
-    checkCudaErrors(secureCudaMemcpy(ecpreg, d_B, h_B, mem_size_B, cudaMemcpyHostToDevice, encrypt, encrypt));
+    clock_gettime(CLOCK_MONOTONIC, &begin);
+    checkCudaErrors(secureCudaMemcpy(ecpreg, d_A, h_A, mem_size_A, cudaMemcpyHostToDevice, encrypt , encrypt));
+    checkCudaErrors(secureCudaMemcpy(ecpreg, d_B, h_B, mem_size_B, cudaMemcpyHostToDevice, encrypt , encrypt));
 
 
 
@@ -301,6 +302,8 @@ int matrixMultiply(int argc, char **argv, int devID, sMatrixSize &matrix_size, E
         checkCudaErrors(cublasDestroy(handle));
     }
     bool resCUBLAS;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    printf("Total Time in CPU end: %lf s\n",((double)end.tv_sec - begin.tv_sec + 0.000000001 * (end.tv_nsec - begin.tv_nsec)));
     if(verify){
         // compute reference solution
         printf("Computing result using host CPU...");
@@ -384,7 +387,7 @@ int beginMatrixMulCUBLAS(int argc, char **argv, ECPreg ecpreg)
 {
     printf("[Matrix Multiply CUBLAS] - Starting...\n");
 
-    int devID = 0, sizeMult = 4;
+    int devID = 0, sizeMult = 5;
     sMatrixSize matrix_size;
 
     initializeCUDA(argc, argv, devID, sizeMult, matrix_size);
