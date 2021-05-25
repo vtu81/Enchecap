@@ -7,7 +7,8 @@ void print_error_message_(sgx_status_t ret);
 
 void enclave_generate_keys(ECPreg *ecpreg)
 {
-	ecall_generate_keys_straw_man(ecpreg->eid, &(ecpreg->sgx_keys), &(ecpreg->shared_sgx_pub_key_host));
+	ecpreg->shared_sgx_pub_key_host = (unsigned long int*)malloc(sizeof(unsigned long int) * 2);
+	ecall_generate_keys_straw_man(ecpreg->eid, &(ecpreg->sgx_keys), ecpreg->shared_sgx_pub_key_host);
 	printf("ecpreg->sgx_keys: %p\n", ecpreg->sgx_keys);
 	printf("ecpreg->shared_sgx_pub_key_host: %u %u\n", ((unsigned long int*)(ecpreg->shared_sgx_pub_key_host))[0], ((unsigned long int*)(ecpreg->shared_sgx_pub_key_host))[1]);
 	test(ecpreg->eid, &(ecpreg->sgx_keys));

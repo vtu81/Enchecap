@@ -119,7 +119,7 @@ void ecall_decrypt_cpu(void* data, int len, void** sgx_keys)
  *   Generate and seal SGX's keys.
  *   Let `*sgx_keys_addr` = the sealed keys' address, and `sgx_pub_key_addr` = the unsealed pub key (n, e) address (in host memory)
  */
-void ecall_generate_keys_straw_man(void** sgx_keys_addr, void** sgx_pub_key_addr)
+void ecall_generate_keys_straw_man(void** sgx_keys_addr, void* sgx_pub_key_addr)
 {
 	unsigned long int p, q, n, e, d;
 	p = 74531;
@@ -138,10 +138,8 @@ void ecall_generate_keys_straw_man(void** sgx_keys_addr, void** sgx_pub_key_addr
 	*sgx_keys_addr = sealed_data;
 	printf("sizeof(sealed_data) = %d\n",sizeof(sealed_data));
 
-	unsigned long int* pub_key_addr = (unsigned long int*)malloc(sizeof(unsigned long int) * 2);
-	pub_key_addr[0] = n;
-	pub_key_addr[1] = e;
-	*sgx_pub_key_addr = pub_key_addr;
+	((unsigned long int*)sgx_pub_key_addr)[0] = n;
+	((unsigned long int*)sgx_pub_key_addr)[1] = e;
 
 	printf("@ENCLAVE: Get and seal user keys successfully!\n");
 }
