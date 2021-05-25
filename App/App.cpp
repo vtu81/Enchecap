@@ -4,6 +4,10 @@
 
 # include <unistd.h>
 # include <pwd.h>
+# define _BENCH
+#ifdef _BENCH
+#include <ctime>
+#endif
 # define MAX_PATH FILENAME_MAX
 
 #include "sgx_urts.h"
@@ -32,7 +36,9 @@ int SGX_CDECL main(int argc, char *argv[])
 {
     (void)(argc);
     (void)(argv);
-
+    #ifdef _BENCH
+    struct timespec begin,end;
+    #endif
     /**
      * Use a global `ECPreg ecpreg` to pass context of Enchecap
      */
@@ -43,7 +49,9 @@ int SGX_CDECL main(int argc, char *argv[])
         return -1;
     }
     printf("******Enchecap initialized successfully!******\n");
-
+    #ifdef _BENCH
+    clock_gettime(CLOCK_MONOTONIC, &begin);
+    #endif
     ////////////////////////////////////////////////////////////////////////////////
     // Major code begin
     ////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +70,10 @@ int SGX_CDECL main(int argc, char *argv[])
     /* Destroy the enclave */
     sgx_destroy_enclave(ecpreg.eid);
     printf("Info: Successfully returned.\n");
-
+    #ifdef _BENCH
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    printf("Total Time : %lf s\n",((double)end.tv_sec - begin.tv_sec + 0.000000001 * (end.tv_nsec - begin.tv_nsec)));
+    #endif
     return 0;
 }
 
