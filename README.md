@@ -4,13 +4,16 @@
 
 An **enc**rypted (**enc**lave-based) **he**terogeneous **ca**lculation **p**rotocol based on Nvidia CUDA and Intel SGX with a simple sample of CUBLAS, designed and implemented by [Tinghao Xie](http://vtu.life), [Haoyang Shi](https://github.com/Luke-Skycrawler), [Zihang Li](https://github.com/zjulzhhh).
 
-Enchecap illustration:
+### Enchecap illustration:
+
 ![demo](./assets/demo.png)
 
-Enchecap illustration (with **protected** and **trusted** regions):
+### Enchecap illustration (with **protected** and **trusted** regions):
+
 ![demo](./assets/demo_box.png)
 
-Enchecap performance:
+### Enchecap performance:
+
 ![performance](./assets/Enchecap_performance_0.png)
 
 ---
