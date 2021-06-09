@@ -2,13 +2,16 @@
 
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=vtu81.Enchecap)
 
-An (onbuilding) **enc**rypted (**enc**lave-based) **he**terogeneous **ca**lculation **p**rotocol based on Nvidia CUDA and Intel SGX, designed and implemented by [Tinghao Xie](http://vtu.life), [Haoyang Shi](https://github.com/Luke-Skycrawler), [Zihang Li](https://github.com/zjulzhhh).
+An **enc**rypted (**enc**lave-based) **he**terogeneous **ca**lculation **p**rotocol based on Nvidia CUDA and Intel SGX with a simple sample of CUBLAS, designed and implemented by [Tinghao Xie](http://vtu.life), [Haoyang Shi](https://github.com/Luke-Skycrawler), [Zihang Li](https://github.com/zjulzhhh).
 
 Enchecap illustration:
 ![demo](./assets/demo.png)
 
 Enchecap illustration (with **protected** and **trusted** regions):
 ![demo](./assets/demo_box.png)
+
+Enchecap performance:
+![performance](/images/Enchecap_performance_0.png)
 
 ---
 
@@ -66,13 +69,12 @@ Run with:
 - [x] En/Decrypt on GPU (decrypt with GPU's private key, encrypt with SGX's public key)
 
 ### Future Work
-- [ ] Test the performance
 - [ ] The GPU's and SGX's keys are both simply welded in the code currently, need FIX
 - [ ] The current RSA en/decrypt algorithm is yet extremely naive! (further works include regrouping, big number supports...)
-- [ ] Add the user's part into the sample, including
+- [ ] Add the user-server part into the sample, including
     * Remote attestation with Intel SGX
     * Broadcast his/her public key to the enclave and GPU, meanwhile record their public keys
     * Send encrypted data to the server
     * Receive encrypted results from the server
-- [ ] Intergration with real industrial work based on CUDA
+- [ ] Intergration with real industrial work based on CUDA (like PyTorch)
 - [ ] Intergration with a real trusted GPU (far from our reach now)
