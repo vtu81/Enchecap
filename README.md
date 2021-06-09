@@ -11,7 +11,7 @@ Enchecap illustration (with **protected** and **trusted** regions):
 ![demo](./assets/demo_box.png)
 
 Enchecap performance:
-![performance](/images/Enchecap_performance_0.png)
+![performance](./assets/Enchecap_performance_0.png)
 
 ---
 
