@@ -78,7 +78,7 @@ SGX_COMMON_CXXFLAGS := $(SGX_COMMON_FLAGS) -Wnon-virtual-dtor -std=c++11
 ######## CUDA Settings ########
 
 # Location of the CUDA Toolkit
-CUDA_PATH ?= /usr/local/cuda-11.1
+CUDA_PATH ?= /usr/local/cuda
 
 ##############################
 # start deprecated interface #

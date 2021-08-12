@@ -37,6 +37,8 @@ Then build with:
 make # SGX hardware mode
 ```
 
+if your CPU and bios support SGX, or just simulate the SGX app with:
+
 ```bash
 make SGX_MODE=SIM  # SGX simulation mode
 ```
